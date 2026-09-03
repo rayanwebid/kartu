@@ -168,7 +168,7 @@ export default function StudentDashboard() {
                                 <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--surface-200)' }}>
                                     <div style={{ width: 100, height: 100, borderRadius: '50%', backgroundColor: 'var(--surface-200)', overflow: 'hidden', border: '4px solid white', boxShadow: 'var(--shadow-sm)' }}>
                                         {profile?.photo_path ? (
-                                            <img src={`http://localhost:8000/storage/${profile.photo_path}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={`/storage/${profile.photo_path}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
                                             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                                                 <User size={40} />
@@ -266,7 +266,7 @@ export default function StudentDashboard() {
                                 <div id="card-front" className="id-card" style={{
                                     width: template?.orientation === 'portrait' ? '54mm' : '86mm',
                                     height: template?.orientation === 'portrait' ? '86mm' : '54mm',
-                                    background: template?.background_image_path ? `url(http://localhost:8000/api/image?path=${template.background_image_path}) no-repeat center/cover` : 'white',
+                                    background: template?.background_image_path ? `url(/api/image?path=${template.background_image_path}) no-repeat center/cover` : 'white',
                                     position: 'relative',
                                     borderRadius: '8px',
                                     boxShadow: 'var(--shadow-md)',
@@ -280,7 +280,7 @@ export default function StudentDashboard() {
                                             {/* Header Section */}
                                             <div style={{ display: 'flex', alignItems: 'center', padding: '6px 16px 2px 16px', gap: '8px', zIndex: 10 }}>
                                                 {template?.logo_image_path ? (
-                                                    <img src={`http://localhost:8000/api/image?path=${template.logo_image_path}`} crossOrigin="anonymous" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
+                                                    <img src={`/api/image?path=${template.logo_image_path}`} crossOrigin="anonymous" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
                                                 ) : (
                                                     <div style={{ width: '38px', height: '38px' }} />
                                                 )}
@@ -296,7 +296,7 @@ export default function StudentDashboard() {
                                             {/* Media Section: Photo & QR */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 18px', marginTop: '2px', zIndex: 10 }}>
                                                 <div style={{ width: '65px', height: '85px', border: '2px solid white', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', backgroundColor: '#ccc' }}>
-                                                    {profile?.photo_path && <img src={`http://localhost:8000/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                                    {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 </div>
                                                 <div style={{ width: '65px', height: '65px', background: 'white', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
                                                     {profile?.nisn && <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${profile.nisn}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%' }} />}
@@ -333,7 +333,7 @@ export default function StudentDashboard() {
 
                                                     <div style={{ position: 'relative', height: '35px', margin: '2px 0' }}>
                                                         {template?.signature_image_path && (
-                                                            <img src={`http://localhost:8000/api/image?path=${template.signature_image_path}`} crossOrigin="anonymous" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '120%', maxHeight: '42px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                                                            <img src={`/api/image?path=${template.signature_image_path}`} crossOrigin="anonymous" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '120%', maxHeight: '42px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
                                                         )}
                                                     </div>
 
@@ -352,7 +352,7 @@ export default function StudentDashboard() {
                                             <div style={{ display: 'flex', gap: '12px', flex: 1, marginTop: '8px' }}>
                                                 {/* Photo */}
                                                 <div style={{ width: '60px', height: '80px', background: '#ccc', borderRadius: '4px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                                                    {profile?.photo_path && <img src={`http://localhost:8000/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                                    {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 </div>
 
                                                 {/* Data */}
@@ -377,7 +377,7 @@ export default function StudentDashboard() {
                                     <div id="card-back" className="id-card" style={{
                                         width: backTemplate?.orientation === 'portrait' ? '54mm' : '86mm',
                                         height: backTemplate?.orientation === 'portrait' ? '86mm' : '54mm',
-                                        background: backTemplate?.background_image_path ? `url(http://localhost:8000/api/image?path=${backTemplate.background_image_path}) no-repeat center/cover` : 'white',
+                                        background: backTemplate?.background_image_path ? `url(/api/image?path=${backTemplate.background_image_path}) no-repeat center/cover` : 'white',
                                         position: 'relative',
                                         borderRadius: '8px',
                                         boxShadow: 'var(--shadow-md)',
