@@ -38,7 +38,6 @@
   padding: 0;
   box-sizing: border-box;
 }
-
 body {
   font-family: 'Inter', sans-serif;
   color: var(--text-700);
@@ -53,39 +52,32 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
 }
-
 a {
   text-decoration: none;
   color: inherit;
 }
-
 button {
   cursor: pointer;
   font-family: inherit;
   border: none;
   background: none;
 }
-
 /* Animations */
 @keyframes fadeInDown {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 }
-
 .animate-fade-in {
   animation: fadeInDown 0.6s var(--transition-normal) forwards;
 }
-
 .animate-float {
   animation: float 4s ease-in-out infinite;
 }
-
 /* Base Classes */
 .btn {
   display: inline-flex;
@@ -97,33 +89,27 @@ button {
   transition: all var(--transition-fast);
   letter-spacing: -0.01em;
 }
-
 .btn:active { transform: scale(0.98); }
-
 .btn-primary {
   background-color: var(--primary-600);
   color: white;
   box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
 }
-
 .btn-primary:hover {
   background-color: var(--primary-700);
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.23);
   transform: translateY(-2px);
 }
-
 .btn-secondary {
   background-color: var(--surface-0);
   color: var(--text-900);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--surface-200);
 }
-
 .btn-secondary:hover {
   border-color: var(--text-500);
   transform: translateY(-2px);
 }
-
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
@@ -132,7 +118,6 @@ button {
   box-shadow: var(--shadow-lg);
   border-radius: var(--radius-xl);
 }
-
 /* Utilities */
 .container {
   width: 100%;
@@ -141,3 +126,86 @@ button {
   padding: 0 1.5rem;
 }
 
+/* === Mobile Friendly === */
+/* Admin & Siswa layout: sidebar atas di HP */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+  /* dashboard flex column */
+  .admin-layout,
+  .student-layout {
+    flex-direction: column !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+  .admin-sidebar,
+  .student-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex-direction: row !important;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-sidebar button,
+  .student-sidebar button {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    padding: 0.75rem 0.85rem !important;
+    font-size: 0.85rem;
+  }
+  .admin-main,
+  .student-main {
+    padding: 1rem !important;
+    border-radius: 0.75rem !important;
+  }
+  /* fluid glass-card */
+  .glass-card {
+    padding: 1.25rem !important;
+    border-radius: 1rem !important;
+  }
+  /* form rows stack */
+  .form-row {
+    flex-direction: column !important;
+  }
+  .admin-form-grid,
+  .edit-form {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-form-grid .full-span,
+  .edit-form .full-span,
+  .full-span {
+    grid-column: span 1 !important;
+  }
+  /* tables scroll */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* landing hero stack */
+  .landing-hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 2rem !important;
+  }
+  .landing-hero-grid h1 {
+    font-size: 2rem !important;
+  }
+  .landing-header {
+    padding: 1rem 0 !important;
+  }
+  /* admin nav + student nav wrap */
+  .admin-nav,
+  .student-nav {
+    padding: 0.75rem 1rem !important;
+  }
+  /* card canvas scaling on small screens */
+  .id-card {
+    transform-origin: top center;
+  }
+}
+
+@media (max-width: 480px) {
+  h2 { font-size: 1.15rem !important; }
+  .btn { padding: 0.6rem 1rem !important; font-size: 0.9rem; }
+}

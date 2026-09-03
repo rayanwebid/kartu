@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
-import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye } from 'lucide-react';
+import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye, Clock, UserCheck, UserX } from 'lucide-react';
 import { StudentCard, downloadCardImage, downloadCardPDF } from '../components/StudentCard';
 
 export default function AdminDashboard() {
@@ -34,8 +34,26 @@ export default function AdminDashboard() {
     const [cardLoading, setCardLoading] = useState(false);
     const [cardStudentId, setCardStudentId] = useState(null);
 
+    // Approval pending
+    const [pendingList, setPendingList] = useState([]);
+    const [pendingMeta, setPendingMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
+    const [pendingSearch, setPendingSearch] = useState('');
+    const [pendingPage, setPendingPage] = useState(1);
+    const [pendingCount, setPendingCount] = useState(0);
+
     useEffect(() => { loadData(); }, [activeTab]);
     useEffect(() => { if (activeTab === 'students') loadStudents(1); }, [search, filterMajor]);
+    useEffect(() => { if (activeTab === 'approvals') loadPending(1); }, [pendingSearch]);
+    useEffect(() => { fetchPendingCount(); }, []);
+    // refresh pending count when students change
+    useEffect(() => { if (activeTab !== 'approvals') fetchPendingCount(); }, [activeTab]);
+
+    const fetchPendingCount = async () => {
+        try {
+            const res = await api.get('/admin/students/pending', { params: { page: 1 } });
+            setPendingCount(res.data.total || 0);
+        } catch (e) { }
+    };
 
     const loadStudents = async (p = page) => {
         const params = {};
@@ -50,12 +68,45 @@ export default function AdminDashboard() {
         } catch (e) { console.error(e); }
     };
 
+    const loadPending = async (p = pendingPage) => {
+        const params = { page: p };
+        if (pendingSearch) params.search = pendingSearch;
+        try {
+            const res = await api.get('/admin/students/pending', { params });
+            setPendingList(res.data.data);
+            setPendingMeta({ current_page: res.data.current_page, last_page: res.data.last_page, total: res.data.total });
+            setPendingPage(res.data.current_page);
+            setPendingCount(res.data.total);
+        } catch (e) { console.error(e); }
+    };
+
+    const approveStudent = async (id) => {
+        if (!window.confirm('Setujui pendaftaran siswa ini? Siswa akan bisa login.')) return;
+        try {
+            await api.post(`/admin/students/${id}/approve`);
+            loadPending(pendingPage);
+            loadStudents(page);
+            fetchPendingCount();
+        } catch (e) { alert(e.response?.data?.message || 'Gagal menyetujui'); }
+    };
+
+    const rejectStudent = async (id) => {
+        if (!window.confirm('Tolak pendaftaran siswa ini? Status akan menjadi Ditolak — siswa tidak bisa login.')) return;
+        try {
+            await api.post(`/admin/students/${id}/reject`);
+            loadPending(pendingPage);
+            fetchPendingCount();
+        } catch (e) { alert(e.response?.data?.message || 'Gagal menolak'); }
+    };
+
     const loadData = () => {
         if (activeTab === 'students') loadStudents(page);
+        if (activeTab === 'approvals') loadPending(pendingPage);
         if (activeTab === 'majors') api.get('/admin/majors').then(res => setMajors(res.data)).catch(console.error);
         if (activeTab === 'templates') api.get('/admin/templates').then(res => setTemplates(res.data)).catch(console.error);
         if (activeTab === 'landing') api.get('/admin/landing-contents').then(res => setLanding(res.data)).catch(console.error);
         if (activeTab === 'students' && majors.length === 0) api.get('/admin/majors').then(res => setMajors(res.data)).catch(() => {});
+        if (activeTab === 'approvals' && majors.length === 0) api.get('/admin/majors').then(res => setMajors(res.data)).catch(() => {});
     };
 
     // Major Handlers
@@ -192,7 +243,6 @@ export default function AdminDashboard() {
             loadData();
         } catch (err) {
             if (!err.response) {
-                const isNet = err.message === 'Network Error' || err.code === 'ERR_NETWORK';
                 alert("Gagal menyimpan template: Network Error — cek koneksi atau ukuran file (maks 5MB per gambar, total request maks 10MB). Coba file <2MB dulu. Detail: " + err.message);
                 return;
             }
@@ -218,11 +268,11 @@ export default function AdminDashboard() {
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--surface-50)', display: 'flex', flexDirection: 'column' }}>
-            <nav style={{ background: 'white', padding: '1rem 2rem', borderBottom: '1px solid var(--surface-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <nav className="admin-nav" style={{ background: 'white', padding: '1rem 2rem', borderBottom: '1px solid var(--surface-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <Link to="/" style={{ textDecoration: 'none' }}>
                     <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-700)' }}>{landing?.website_name || 'e-Pelajar'}</div>
                 </Link>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Admin: {user?.name}</span>
                     <button onClick={logout} className="btn" style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.5rem 1rem', borderRadius: '0.5rem' }}>
                         <LogOut size={16} /> Keluar
@@ -230,15 +280,66 @@ export default function AdminDashboard() {
                 </div>
             </nav>
 
-            <div className="container" style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', flex: 1, alignItems: 'flex-start' }}>
-                <aside style={{ width: '250px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div className="admin-layout container" style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', flex: 1, alignItems: 'flex-start' }}>
+                <aside className="admin-sidebar" style={{ width: '250px', minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <TabButton icon={<Users size={20} />} label="Daftar Siswa" tab="students" current={activeTab} set={setActiveTab} />
+                    <TabButton icon={<Clock size={20} />} label="Persetujuan" tab="approvals" current={activeTab} set={setActiveTab} badge={pendingCount} badgeColor="#d97706" />
                     <TabButton icon={<GraduationCap size={20} />} label="Master Jurusan" tab="majors" current={activeTab} set={setActiveTab} />
                     <TabButton icon={<LayoutTemplate size={20} />} label="Template Kartu" tab="templates" current={activeTab} set={setActiveTab} />
                     <TabButton icon={<Settings size={20} />} label="Konten Beranda" tab="landing" current={activeTab} set={setActiveTab} />
                 </aside>
 
-                <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+                <main className="admin-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+                    {activeTab === 'approvals' && (
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock size={20} /> Pendaftaran Menunggu ({pendingMeta.total})</h2>
+                                <button onClick={() => loadPending(pendingPage)} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>Muat Ulang</button>
+                            </div>
+                            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', fontSize: '0.85rem', color: '#92400e', marginBottom: '1rem' }}>
+                                Pendaftaran baru belum bisa login sampai Anda <b>Setujui</b>. Tekan <b>Tolak</b> jika data tidak valid.
+                            </div>
+                            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                                <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                <input placeholder="Cari nama / NISN pendaftaran" value={pendingSearch} onChange={e => setPendingSearch(e.target.value)} style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem' }} />
+                            </div>
+
+                            {pendingList.length === 0 ? (
+                                <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: '0.75rem' }}>
+                                    <Clock size={28} style={{ margin: '0 auto 0.5rem', opacity: 0.6 }} />
+                                    <div>Tidak ada pendaftaran menunggu.</div>
+                                    <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Semua pendaftar sudah diproses.</div>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    {pendingList.map(s => (
+                                        <div key={s.id} style={{ border: '1px solid #fde68a', background: '#fffbeb', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div style={{ flex: 1, minWidth: '220px' }}>
+                                                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{s.full_name}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>{s.user?.email} • NISN {s.nisn} • NIK {s.nik}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.25rem' }}>{s.birth_place}, {s.birth_date} • {s.religion} • {s.major?.name || s.major_id}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.15rem', wordBreak: 'break-word' }}>{s.address}</div>
+                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.3rem' }}>Daftar: {new Date(s.created_at).toLocaleString('id-ID')}</div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <button onClick={() => approveStudent(s.id)} className="btn btn-primary" style={{ padding: '0.55rem 1rem', background: '#059669', borderColor: '#059669' }}><UserCheck size={16} style={{ marginRight: '0.35rem' }} /> Setujui</button>
+                                                <button onClick={() => rejectStudent(s.id)} className="btn" style={{ padding: '0.55rem 1rem', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}><UserX size={16} style={{ marginRight: '0.35rem' }} /> Tolak</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Hal {pendingMeta.current_page} / {pendingMeta.last_page} • Total {pendingMeta.total}</span>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button disabled={pendingPage <= 1} onClick={() => loadPending(pendingPage - 1)} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }}>Prev</button>
+                                    <button disabled={pendingPage >= pendingMeta.last_page} onClick={() => loadPending(pendingPage + 1)} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }}>Next</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {activeTab === 'students' && (
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -249,18 +350,18 @@ export default function AdminDashboard() {
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                                <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+                                <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
                                     <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                                     <input placeholder="Cari nama / NISN / NIK" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem' }} />
                                 </div>
-                                <select value={filterMajor} onChange={e => setFilterMajor(e.target.value)} style={{ padding: '0.6rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', minWidth: '180px' }}>
+                                <select value={filterMajor} onChange={e => setFilterMajor(e.target.value)} style={{ padding: '0.6rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', minWidth: '160px' }}>
                                     <option value="">Semua Jurusan</option>
                                     {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                 </select>
                             </div>
 
                             {addStudentMod && (
-                                <form onSubmit={handleStudentSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
+                                <form onSubmit={handleStudentSubmit} className="admin-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
                                     <Input c="2" l="Nama Lengkap" v={studentForm.full_name} onChange={e => setStudentForm({ ...studentForm, full_name: e.target.value })} />
                                     <Input l="Email Akses (nisn@kartu.smkmuda.id)" type="email" v={studentForm.email} onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} />
                                     <Input l="Password Akses (Min 6)" type="password" v={studentForm.password} onChange={e => setStudentForm({ ...studentForm, password: e.target.value })} />
@@ -283,17 +384,17 @@ export default function AdminDashboard() {
                                             {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                         </select>
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }} className="full-span">
                                         <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Alamat Lengkap</label>
                                         <textarea required rows="2" className="form-input" style={{ padding: '0.6rem' }} value={studentForm.address || ''} onChange={e => setStudentForm({ ...studentForm, address: e.target.value })} />
                                     </div>
-                                    <button type="submit" className="btn btn-primary" style={{ gridColumn: 'span 2' }}>Simpan Akun Siswa</button>
+                                    <button type="submit" className="btn btn-primary full-span" style={{ gridColumn: 'span 2' }}>Simpan Akun Siswa</button>
                                 </form>
                             )}
 
                             {editingStudent && (
                                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }} onClick={() => setEditingStudent(null)}>
-                                    <form onSubmit={handleEditSubmit} onClick={e => e.stopPropagation()} style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <form onSubmit={handleEditSubmit} onClick={e => e.stopPropagation()} className="edit-form" style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <h3>Edit Siswa: {editingStudent.full_name}</h3>
                                             <button type="button" onClick={() => setEditingStudent(null)} style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.5rem' }}><X size={16} /></button>
@@ -327,7 +428,7 @@ export default function AdminDashboard() {
                                             <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Alamat</label>
                                             <textarea rows="2" style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }} value={editForm.address || ''} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
                                         </div>
-                                        <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                        <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                             <button type="button" onClick={() => setEditingStudent(null)} className="btn btn-secondary">Batal</button>
                                             <button type="submit" className="btn btn-primary"><Save size={16} /> Simpan</button>
                                         </div>
@@ -335,7 +436,8 @@ export default function AdminDashboard() {
                                 </div>
                             )}
 
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                            <div className="table-wrap" style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem', minWidth: '560px' }}>
                                 <thead style={{ background: 'var(--surface-100)' }}>
                                     <tr><th style={{ padding: '0.75rem' }}>Nama</th><th style={{ padding: '0.75rem' }}>NISN / NIK</th><th style={{ padding: '0.75rem' }}>Jurusan</th><th style={{ padding: '0.75rem' }}>Aksi</th></tr>
                                 </thead>
@@ -354,6 +456,7 @@ export default function AdminDashboard() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                             {students.length === 0 && <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Tidak ada data siswa</div>}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Hal {studentsMeta.current_page} / {studentsMeta.last_page} • Total {studentsMeta.total}</span>
@@ -366,7 +469,7 @@ export default function AdminDashboard() {
                             {cardPreview && (
                                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }} onClick={() => setCardPreview(null)}>
                                     <div onClick={e => e.stopPropagation()} style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', maxWidth: '920px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                             <h3>Kartu: {cardPreview.profile?.full_name} ({cardPreview.profile?.nisn})</h3>
                                             <button onClick={() => setCardPreview(null)} style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.5rem' }}><X size={16} /></button>
                                         </div>
@@ -389,11 +492,12 @@ export default function AdminDashboard() {
 
                     {activeTab === 'majors' && (
                         <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                                 <h2>Master Data Jurusan</h2>
                                 <button onClick={addMajor} className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}><Plus size={16} /> Jurusan Baru</button>
                             </div>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <div className="table-wrap" style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '400px' }}>
                                 <thead style={{ background: 'var(--surface-100)' }}><tr><th style={{ padding: '1rem' }}>ID</th><th style={{ padding: '1rem' }}>Nama Konsentrasi</th><th style={{ padding: '1rem', textAlign: 'right' }}>Opsi</th></tr></thead>
                                 <tbody>
                                     {majors.map(m => (
@@ -408,12 +512,13 @@ export default function AdminDashboard() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'templates' && (
                         <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                                 <h2>Generator Desain Cetak Kartu</h2>
                                 <button onClick={() => { setAddTemplateMod(!addTemplateMod); setTemplateForm({}); }} className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>
                                     {addTemplateMod ? 'Batal' : <><Plus size={16} /> Unggah Desain Baru</>}
@@ -421,9 +526,9 @@ export default function AdminDashboard() {
                             </div>
 
                             {addTemplateMod && (
-                                <form onSubmit={handleTemplateSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid var(--surface-200)' }}>
+                                <form onSubmit={handleTemplateSubmit} className="admin-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid var(--surface-200)' }}>
 
-                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', marginBottom: '0.5rem', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Informasi Sistem & Orientasi</div>
+                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', marginBottom: '0.5rem', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }} className="full-span">Informasi Sistem & Orientasi</div>
                                     <Input l="Nama Tanda / Tag (Info Admin)" v={templateForm.template_name} onChange={e => setTemplateForm({ ...templateForm, template_name: e.target.value })} />
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                         <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Tipe Kartu / Sisi</label>
@@ -442,18 +547,18 @@ export default function AdminDashboard() {
                                         </select>
                                     </div>
 
-                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', margin: '0.5rem 0', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Teks Kop Kartu & Instansi</div>
+                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', margin: '0.5rem 0', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }} className="full-span">Teks Kop Kartu & Instansi</div>
                                     <Input l="Nama Yayasan (Maks: 2 Baris)" disabled={templateForm.card_type === 'back'} v={templateForm.card_type === 'back' ? '' : templateForm.foundation_name} onChange={e => setTemplateForm({ ...templateForm, foundation_name: e.target.value })} />
                                     <Input l="Nama Sekolah (Utama)" disabled={templateForm.card_type === 'back'} v={templateForm.card_type === 'back' ? '' : templateForm.school_name} onChange={e => setTemplateForm({ ...templateForm, school_name: e.target.value })} />
                                     <Input l="Status Akreditasi" disabled={templateForm.card_type === 'back'} v={templateForm.card_type === 'back' ? '' : templateForm.accreditation} onChange={e => setTemplateForm({ ...templateForm, accreditation: e.target.value })} />
                                     <Input l="Alamat Cabang Sekolah" disabled={templateForm.card_type === 'back'} v={templateForm.card_type === 'back' ? '' : templateForm.school_address} onChange={e => setTemplateForm({ ...templateForm, school_address: e.target.value })} />
 
-                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', margin: '0.5rem 0', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Area Tanda Tangan</div>
+                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', margin: '0.5rem 0', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }} className="full-span">Area Tanda Tangan</div>
                                     <Input l="Tempat, Tanggal Pengesahan" disabled={templateForm.card_type === 'back'} v={templateForm.card_type === 'back' ? '' : templateForm.sign_place_date} onChange={e => setTemplateForm({ ...templateForm, sign_place_date: e.target.value })} />
                                     <Input l="Nama Tersignatur (Kepala Sekolah)" disabled={templateForm.card_type === 'back'} v={templateForm.card_type === 'back' ? '' : templateForm.principal_name} onChange={e => setTemplateForm({ ...templateForm, principal_name: e.target.value })} />
                                     <Input l="Teks NBM / NIP" disabled={templateForm.card_type === 'back'} v={templateForm.card_type === 'back' ? '' : templateForm.principal_nip} onChange={e => setTemplateForm({ ...templateForm, principal_nip: e.target.value })} />
 
-                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', margin: '0.5rem 0', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }}>Media Visual</div>
+                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '1rem', color: 'var(--primary-700)', margin: '0.5rem 0', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem' }} className="full-span">Media Visual</div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                         <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Gambar Blanko / Background (Opsional)</label>
                                         <input type="file" accept="image/*" className="form-input" style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }} onChange={e => setTemplateForm({ ...templateForm, background_image: e.target.files[0] })} />
@@ -467,13 +572,13 @@ export default function AdminDashboard() {
                                         <input type="file" accept="image/*" disabled={templateForm.card_type === 'back'} className="form-input" style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem', background: templateForm.card_type === 'back' ? '#f1f5f9' : 'white' }} onChange={e => setTemplateForm({ ...templateForm, signature_image: e.target.files[0] })} />
                                     </div>
 
-                                    <button type="submit" className="btn btn-primary" style={{ gridColumn: 'span 2', marginTop: '1rem', padding: '0.75rem' }}>
+                                    <button type="submit" className="btn btn-primary full-span" style={{ gridColumn: 'span 2', marginTop: '1rem', padding: '0.75rem' }}>
                                         {templateForm.id ? 'Perbarui Template' : 'Simpan Ke Dalam Sistem'}
                                     </button>
                                 </form>
                             )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                                 {templates.map(t => (
                                     <div key={t.id} style={{ border: '1px solid var(--surface-200)', borderRadius: '1rem', padding: '1.5rem', position: 'relative' }}>
                                         {t.background_image_path && <div style={{ width: '100%', height: '100px', background: `url(/storage/${t.background_image_path}) no-repeat center/cover`, marginBottom: '1rem', borderRadius: '0.5rem' }} />}
@@ -522,20 +627,23 @@ export default function AdminDashboard() {
     );
 }
 
-const TabButton = ({ icon, label, tab, current, set }) => (
+const TabButton = ({ icon, label, tab, current, set, badge, badgeColor }) => (
     <button
         onClick={() => set(tab)}
         style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '0.75rem',
             background: current === tab ? 'var(--primary-50)' : 'transparent', color: current === tab ? 'var(--primary-700)' : 'var(--text-700)',
-            fontWeight: current === tab ? 600 : 500, transition: 'all 0.2s', border: 'none', cursor: 'pointer', textAlign: 'left'
+            fontWeight: current === tab ? 600 : 500, transition: 'all 0.2s', border: 'none', cursor: 'pointer', textAlign: 'left', position: 'relative', width: '100%'
         }}>
-        {icon} {label}
+        {icon} <span style={{ flex: 1 }}>{label}</span>
+        {badge > 0 && (
+            <span style={{ background: badgeColor || '#e11d48', color: 'white', fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '999px', minWidth: '1.4rem', textAlign: 'center' }}>{badge}</span>
+        )}
     </button>
 );
 
 const Input = ({ l, v, onChange, type = "text", c = "1", disabled = false }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: `span ${c}`, opacity: disabled ? 0.6 : 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: `span ${c}`, opacity: disabled ? 0.6 : 1 }} className={c === "2" ? "full-span" : ""}>
         <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>{l}</label>
         <input required={!disabled} disabled={disabled} type={type} className="form-input" style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem', background: disabled ? '#f1f5f9' : 'white', cursor: disabled ? 'not-allowed' : 'text' }} value={v || ''} onChange={onChange} />
     </div>

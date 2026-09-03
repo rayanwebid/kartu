@@ -125,7 +125,7 @@ export default function StudentDashboard() {
     return (
         <div style={{ minHeight: '100vh', background: 'var(--surface-50)', display: 'flex', flexDirection: 'column' }}>
             {/* Navbar */}
-            <nav style={{ background: 'white', padding: '1rem 2rem', borderBottom: '1px solid var(--surface-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <nav className="student-nav" style={{ background: 'white', padding: '1rem 2rem', borderBottom: '1px solid var(--surface-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <Link to="/" style={{ textDecoration: 'none' }}>
                     <div style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--primary-700)' }}>{websiteName} Dashboard</div>
                 </Link>
@@ -137,10 +137,10 @@ export default function StudentDashboard() {
                 </div>
             </nav>
 
-            <div className="container" style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', flex: 1 }}>
+            <div className="container student-layout" style={{ display: 'flex', gap: '2rem', padding: '2rem 1.5rem', flex: 1 }}>
 
                 {/* Sidebar */}
-                <aside style={{ width: '250px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <aside className="student-sidebar" style={{ width: '250px', minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <button
                         onClick={() => setActiveTab('profile')}
                         style={{
@@ -160,7 +160,7 @@ export default function StudentDashboard() {
                 </aside>
 
                 {/* Main Content */}
-                <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }} className="print-area">
+                <main className="print-area student-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
                     {activeTab === 'profile' && (
                         <div className="glass-card animate-fade-in" style={{ padding: '2rem' }}>

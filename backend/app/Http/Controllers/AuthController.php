@@ -48,7 +48,9 @@ class AuthController extends Controller
             'name' => $request->full_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'siswa'
+            'role' => 'siswa',
+            'approval_status' => 'pending',
+            'approved_at' => null,
         ]);
 
         StudentProfile::create([
@@ -56,17 +58,18 @@ class AuthController extends Controller
             'nisn' => $request->nisn,
             'nik' => $request->nik,
             'full_name' => $request->full_name,
-            'photo_path' => null, // Can be uploaded later
+            'photo_path' => null,
             'birth_place' => $request->birth_place,
             'birth_date' => $request->birth_date,
             'religion' => $request->religion,
-            'major_id' => $request->major_id ?? 1, // Default to a major for now
+            'major_id' => $request->major_id,
             'address' => $request->address,
         ]);
 
+        // Siswa baru pending — jangan beri token, harus menunggu persetujuan admin
         return response()->json([
+            'message' => 'Pendaftaran berhasil! Akun Anda menunggu persetujuan admin. Anda akan bisa login setelah admin menyetujui.',
             'user' => $user,
-            'token' => $user->createToken('siswa-token')->plainTextToken
         ], 201);
     }
 
@@ -103,6 +106,17 @@ class AuthController extends Controller
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Kredensial tidak sesuai.'],
+            ]);
+        }
+
+        if ($user->role === 'siswa' && $user->approval_status === 'pending') {
+            throw ValidationException::withMessages([
+                'email' => ['Akun Anda masih menunggu persetujuan admin. Pendaftaran Anda belum disetujui — silakan hubungi admin atau tunggu konfirmasi.'],
+            ]);
+        }
+        if ($user->approval_status === 'rejected') {
+            throw ValidationException::withMessages([
+                'email' => ['Pendaftaran Anda ditolak oleh admin. Hubungi admin untuk informasi lebih lanjut.'],
             ]);
         }
 

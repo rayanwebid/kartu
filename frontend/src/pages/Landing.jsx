@@ -19,7 +19,7 @@ export default function Landing() {
 
     return (
         <div className="landing-wrapper" style={{ overflowX: 'hidden' }}>
-            <nav style={{ padding: '1.5rem 0', position: 'fixed', top: 0, width: '100%', zIndex: 50, background: 'var(--glass-bg)', backdropFilter: 'blur(10px)' }}>
+            <nav className="landing-header" style={{ padding: '1.5rem 0', position: 'fixed', top: 0, width: '100%', zIndex: 50, background: 'var(--glass-bg)', backdropFilter: 'blur(10px)' }}>
                 <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Link to="/" style={{ textDecoration: 'none' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -37,7 +37,7 @@ export default function Landing() {
             </nav>
 
             <header style={{ paddingTop: '10rem', paddingBottom: '6rem', minHeight: '100vh', display: 'flex', alignItems: 'center', background: 'radial-gradient(circle at top right, var(--primary-50), transparent)' }}>
-                <div className="container animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+                <div className="container animate-fade-in landing-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', zIndex: 10 }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'white', borderRadius: '2rem', boxShadow: 'var(--shadow-sm)', width: 'fit-content' }}>
                             <Zap size={16} color="var(--primary-500)" />

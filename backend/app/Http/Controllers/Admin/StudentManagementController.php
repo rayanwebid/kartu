@@ -24,7 +24,43 @@ class StudentManagementController extends Controller
                   ->orWhere('nik', 'like', '%' . $s . '%');
             });
         }
+        if ($request->filled('approval_status')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('approval_status', $request->approval_status);
+            });
+        } elseif (!$request->filled('show_pending')) {
+            $query->whereHas('user', function ($q) {
+                $q->where('approval_status', '!=', 'pending');
+            });
+        }
         return response()->json($query->orderBy('full_name')->paginate(15));
+    }
+
+    public function pending(Request $request) {
+        $q = StudentProfile::with(['user', 'major'])->whereHas('user', function ($qq) {
+            $qq->where('approval_status', 'pending')->where('role', 'siswa');
+        });
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $q->where(function ($qq) use ($s) {
+                $qq->where('full_name', 'like', '%' . $s . '%')->orWhere('nisn', 'like', '%' . $s . '%');
+            });
+        }
+        return response()->json($q->orderBy('created_at', 'desc')->paginate(15));
+    }
+
+    public function approve(StudentProfile $student) {
+        $user = $student->user;
+        if (!$user) return response()->json(['message' => 'User tidak ditemukan'], 404);
+        $user->update(['approval_status' => 'approved', 'approved_at' => now()]);
+        return response()->json(['message' => 'Pendaftaran disetujui. Siswa kini bisa login.', 'profile' => $student->fresh()->load(['user','major'])]);
+    }
+
+    public function reject(StudentProfile $student) {
+        $user = $student->user;
+        if (!$user) return response()->json(['message' => 'User tidak ditemukan'], 404);
+        $user->update(['approval_status' => 'rejected']);
+        return response()->json(['message' => 'Pendaftaran ditolak.']);
     }
 
     public function show(StudentProfile $student) {
@@ -68,7 +104,9 @@ class StudentManagementController extends Controller
             'name' => $request->full_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'siswa'
+            'role' => 'siswa',
+            'approval_status' => 'approved',
+            'approved_at' => now(),
         ]);
 
         $student = StudentProfile::create([

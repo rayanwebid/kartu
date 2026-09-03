@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/axios';
+import { CheckCircle2, Clock3 } from 'lucide-react';
 
 const InputLine = ({ label, name, type = "text", form, setForm }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
@@ -21,6 +22,7 @@ export default function Register() {
     });
     const [majors, setMajors] = useState([]);
     const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
     const [loading, setLoading] = useState(false);
     const [websiteName, setWebsiteName] = useState('e-Pelajar');
     const navigate = useNavigate();
@@ -44,17 +46,19 @@ export default function Register() {
         }
         setLoading(true);
         try {
-            await api.post('/register', form);
-            alert('Pendaftaran berhasil! Silakan masuk.');
-            navigate('/login');
+            const res = await api.post('/register', form);
+            setSuccess(res.data?.message || 'Pendaftaran berhasil! Akun Anda menunggu persetujuan admin. Anda akan bisa login setelah admin menyetujui.');
+            // reset form biar tidak dobel submit
+            setForm({ full_name: '', email: '', password: '', password_confirmation: '', nisn: '', nik: '', birth_place: '', birth_date: '', religion: 'Islam', address: '', major_id: '' });
         } catch (err) {
             const data = err.response?.data;
             if (data?.errors) {
-                const msgs = Object.entries(data.errors).map(([k, v]) => `${k}: ${v.join(', ')}`).join(' | ');
-                // pesan khusus NISN biar jelas
                 if (data.errors.nisn) {
                     setError(data.errors.nisn.join(' ') + ' — NISN sudah ada di database, tidak bisa mendaftar lagi.');
+                } else if (data.errors.major_id) {
+                    setError(data.errors.major_id.join(' '));
                 } else {
+                    const msgs = Object.entries(data.errors).map(([k, v]) => `${k}: ${v.join(', ')}`).join(' | ');
                     setError(msgs || data.message);
                 }
             } else {
@@ -65,33 +69,58 @@ export default function Register() {
         }
     };
 
+    if (success) {
+        return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-50)', padding: '1rem' }}>
+                <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '560px', padding: '2rem', textAlign: 'center' }}>
+                    <div style={{ width: 64, height: 64, background: '#fef3c7', color: '#d97706', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                        <Clock3 size={32} />
+                    </div>
+                    <h2 style={{ fontSize: '1.35rem', marginBottom: '0.5rem' }}>Pendaftaran Diterima — Menunggu Persetujuan</h2>
+                    <p style={{ color: 'var(--text-700)', fontSize: '0.95rem', lineHeight: 1.6, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.75rem', padding: '0.9rem 1rem', textAlign: 'left' }}>
+                        {success}<br /><br />
+                        <b>Apa selanjutnya?</b><br />
+                        • Admin akan meninjau data Anda di Dashboard Admin → <b>Persetujuan</b>.<br />
+                        • Jika <b>Disetujui</b>, Anda bisa login dengan <b>NISN / Email</b> dan kata sandi yang barusan didaftarkan.<br />
+                        • Jika <b>Ditolak</b>, hubungi admin sekolah untuk perbaikan data.
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+                        <Link to="/login" className="btn btn-primary" style={{ padding: '0.7rem 1.25rem' }}>Ke Halaman Login</Link>
+                        <button onClick={() => setSuccess(null)} className="btn btn-secondary" style={{ padding: '0.7rem 1.25rem' }}>Daftar Akun Lain</button>
+                    </div>
+                    <p style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-500)' }}>Pendaftaran di {websiteName} memerlukan persetujuan admin.</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-50)', padding: '2rem 1rem' }}>
-            <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '600px', padding: '2rem' }}>
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.5rem' }}>Formulir Pendaftaran Siswa Baru</h2>
-                    <p style={{ color: 'var(--text-500)', fontSize: '0.875rem' }}>Mohon isi data diri Anda dengan sebenar-benarnya untuk pendaftaran di <Link to="/" style={{ color: 'var(--primary-600)', fontWeight: 600, textDecoration: 'none' }}>{websiteName}</Link>. Semua kolom bertanda <span style={{ color: '#e11d48' }}>*</span> wajib diisi.</p>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-50)', padding: '1rem' }}>
+            <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '600px', padding: '1.5rem' }}>
+                <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                    <h2 style={{ fontSize: '1.4rem' }}>Formulir Pendaftaran Siswa Baru</h2>
+                    <p style={{ color: 'var(--text-500)', fontSize: '0.85rem' }}>Mohon isi data diri Anda dengan sebenar-benarnya untuk pendaftaran di <Link to="/" style={{ color: 'var(--primary-600)', fontWeight: 600, textDecoration: 'none' }}>{websiteName}</Link>. Semua kolom bertanda <span style={{ color: '#e11d48' }}>*</span> wajib diisi. <b>Setelah daftar, akun menunggu persetujuan admin.</b></p>
                 </div>
 
-                {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.875rem', whiteSpace: 'pre-wrap' }}>{error}</div>}
+                {error && <div style={{ background: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>{error}</div>}
 
-                <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                    <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
                         <InputLine form={form} setForm={setForm} label="Nama Lengkap" name="full_name" />
                         <InputLine form={form} setForm={setForm} label="Alamat Email" name="email" type="email" />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
                         <InputLine form={form} setForm={setForm} label="NISN (10 Digit)" name="nisn" />
                         <InputLine form={form} setForm={setForm} label="NIK (16 Digit)" name="nik" />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
                         <InputLine form={form} setForm={setForm} label="Tempat Lahir" name="birth_place" />
                         <InputLine form={form} setForm={setForm} label="Tanggal Lahir" name="birth_date" type="date" />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
                             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-700)' }}>Agama <span style={{ color: '#e11d48' }}>*</span></label>
                             <select
@@ -132,16 +161,21 @@ export default function Register() {
                         />
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
                         <InputLine form={form} setForm={setForm} label="Kata Sandi (Min: 6)" name="password" type="password" />
                         <InputLine form={form} setForm={setForm} label="Konfirmasi Sandi" name="password_confirmation" type="password" />
                     </div>
 
-                    <button type="submit" disabled={loading} className="btn btn-primary" style={{ marginTop: '1rem', width: '100%' }}>
+                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', fontSize: '0.8rem', color: '#92400e', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                        <Clock3 size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>Setelah <b>Kirim Pendaftaran</b>, akun berstatus <b>Menunggu persetujuan admin</b>. Anda belum bisa login sampai admin menyetujui.</span>
+                    </div>
+
+                    <button type="submit" disabled={loading} className="btn btn-primary" style={{ marginTop: '0.25rem', width: '100%' }}>
                         {loading ? 'Memproses...' : 'Kirim Pendaftaran'}
                     </button>
 
-                    <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem', color: 'var(--text-500)' }}>
+                    <div style={{ textAlign: 'center', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-500)' }}>
                         Sudah punya akun? <Link to="/login" style={{ color: 'var(--primary-600)', fontWeight: 600 }}>Masuk di sini</Link>
                     </div>
                 </form>

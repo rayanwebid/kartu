@@ -28,7 +28,10 @@ export default function Login() {
             if (data?.user?.role === 'admin') navigate('/admin');
             else navigate('/siswa');
         } catch (err) {
-            setError(err.response?.data?.message || 'Login gagal. Periksa kembali kredensial Anda.');
+            const data = err.response?.data;
+            // Laravel ValidationException: errors.email[0] berisi pesan pending/rejected
+            const msg = data?.errors?.email?.[0] || data?.message || 'Login gagal. Periksa kembali kredensial Anda.';
+            setError(msg);
         } finally {
             setLoading(false);
         }
