@@ -45,6 +45,10 @@ class StudentProfileController extends Controller
 
         // Foto: sekali per siklus edit. Jika sudah terkunci tidak bisa upload sama sekali (dicek di atas).
         // Jika is_locked=false (edit pertama atau setelah admin Reset Edit), boleh upload/ganti foto — ganti akan timpa foto lama.
+        // Cegah Simpan tanpa foto: jika belum pernah ada foto & tidak upload baru, tolak
+        if (!$request->hasFile('photo') && empty($profile->photo_path)) {
+            return response()->json(['message' => 'Foto wajib diisi — unggah foto 3:4 pas 62×82 lalu Simpan.'], 422);
+        }
         if ($request->hasFile('photo')) {
             // hapus foto lama jika ada agar tidak menumpuk storage
             if (!empty($profile->photo_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($profile->photo_path)) {

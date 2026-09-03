@@ -75,6 +75,13 @@ export default function StudentDashboard() {
 
     const handleUpdate = async (e) => {
         e.preventDefault();
+        // Foto wajib: jika belum pernah upload & tidak pilih foto baru, cegah Simpan tanpa foto
+        const hasExistingPhoto = !!profile?.photo_path;
+        const hasNewPhoto = !!form.photoFile;
+        if (!hasExistingPhoto && !hasNewPhoto) {
+            alert('Foto wajib diisi — silakan Pilih Foto lalu geser bingkai 3:4 sampai pas 62×82, lalu Simpan.');
+            return;
+        }
         try {
             const formData = new FormData();
             ['full_name', 'birth_place', 'birth_date', 'religion', 'major_id', 'email', 'dusun', 'rt', 'rw', 'desa', 'kecamatan', 'kabupaten'].forEach(k => {
@@ -102,9 +109,13 @@ export default function StudentDashboard() {
         const target = side === 'front' ? document.getElementById('card-front') : document.getElementById('card-back');
         if (target) {
             const oldRadius = target.style.borderRadius;
+            const oldOverflow = target.style.overflow;
             target.style.borderRadius = '0px';
-            const canvas = await html2canvas(target, { scale: 6, useCORS: true, allowTaint: true, logging: false });
+            target.style.overflow = 'hidden';
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            const canvas = await html2canvas(target, { scale: 6, useCORS: true, allowTaint: true, logging: false, backgroundColor: null, onclone: (clonedDoc) => { const el = clonedDoc.getElementById(side === 'front' ? 'card-front' : 'card-back'); if (el) { el.style.borderRadius = '0px'; el.style.overflow = 'hidden'; } } });
             target.style.borderRadius = oldRadius;
+            target.style.overflow = oldOverflow;
             const link = document.createElement('a');
             link.download = side === 'front' ? `Kartu_Depan_${profile.nisn}.png` : `Kartu_Belakang_${profile.nisn}.png`;
             link.href = canvas.toDataURL('image/png');
@@ -122,19 +133,22 @@ export default function StudentDashboard() {
         const doc = new jsPDF({ orientation, unit: 'mm', format: [w, h] });
         const oldFrontRadius = front.style.borderRadius;
         const oldBackRadius = back ? back.style.borderRadius : null;
-        front.style.borderRadius = '0px';
-        if (back) back.style.borderRadius = '0px';
+        const oldFrontOv = front.style.overflow;
+        const oldBackOv = back ? back.style.overflow : null;
+        front.style.borderRadius = '0px'; front.style.overflow = 'hidden';
+        if (back) { back.style.borderRadius = '0px'; back.style.overflow = 'hidden'; }
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         if (front) {
-            const canvasFront = await html2canvas(front, { scale: 6, useCORS: true, allowTaint: true, logging: false });
+            const canvasFront = await html2canvas(front, { scale: 6, useCORS: true, allowTaint: true, logging: false, backgroundColor: null, onclone: (clonedDoc) => { const el = clonedDoc.getElementById('card-front'); if (el) { el.style.borderRadius = '0px'; el.style.overflow = 'hidden'; } } });
             doc.addImage(canvasFront.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, w, h);
         }
         if (back) {
             doc.addPage();
-            const canvasBack = await html2canvas(back, { scale: 6, useCORS: true, allowTaint: true, logging: false });
+            const canvasBack = await html2canvas(back, { scale: 6, useCORS: true, allowTaint: true, logging: false, backgroundColor: null, onclone: (clonedDoc) => { const el = clonedDoc.getElementById('card-back'); if (el) { el.style.borderRadius = '0px'; el.style.overflow = 'hidden'; } } });
             doc.addImage(canvasBack.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, w, h);
         }
-        front.style.borderRadius = oldFrontRadius;
-        if (back) back.style.borderRadius = oldBackRadius;
+        front.style.borderRadius = oldFrontRadius; front.style.overflow = oldFrontOv;
+        if (back) back.style.borderRadius = oldBackRadius; back.style.overflow = oldBackOv;
         doc.save(`IDCard_${profile.nisn}.pdf`);
     };
 

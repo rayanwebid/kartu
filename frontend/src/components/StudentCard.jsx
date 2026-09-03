@@ -2,14 +2,25 @@ import { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
-// Reuse identical rendering to StudentDashboard.jsx: same ids card-front/card-back, same html2canvas scale:6
+// Download lancip (tanpa oval) — paksa borderRadius 0 saat capture + onclone biar sesuai blanko asli
 export async function downloadCardImage(side, nisn) {
     const target = document.getElementById(side === 'front' ? 'card-front' : 'card-back');
     if (!target) return;
     const old = target.style.borderRadius;
+    const oldOverflow = target.style.overflow;
     target.style.borderRadius = '0px';
-    const canvas = await html2canvas(target, { scale: 6, useCORS: true, allowTaint: true, logging: false });
+    target.style.overflow = 'hidden';
+    // beri frame agar style ter-apply sebelum clone
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const canvas = await html2canvas(target, {
+        scale: 6, useCORS: true, allowTaint: true, logging: false, backgroundColor: null,
+        onclone: (clonedDoc) => {
+            const el = clonedDoc.getElementById(side === 'front' ? 'card-front' : 'card-back');
+            if (el) { el.style.borderRadius = '0px'; el.style.overflow = 'hidden'; }
+        }
+    });
     target.style.borderRadius = old;
+    target.style.overflow = oldOverflow;
     const a = document.createElement('a');
     a.download = side === 'front' ? `Kartu_Depan_${nisn}.png` : `Kartu_Belakang_${nisn}.png`;
     a.href = canvas.toDataURL('image/png');
@@ -26,17 +37,31 @@ export async function downloadCardPDF(profile, template, backTemplate) {
     const doc = new jsPDF({ orientation, unit: 'mm', format: [w, h] });
     const oldFront = front.style.borderRadius;
     const oldBack = back ? back.style.borderRadius : null;
-    front.style.borderRadius = '0px';
-    if (back) back.style.borderRadius = '0px';
-    const cf = await html2canvas(front, { scale: 6, useCORS: true, allowTaint: true, logging: false });
+    const oldFrontOv = front.style.overflow;
+    const oldBackOv = back ? back.style.overflow : null;
+    front.style.borderRadius = '0px'; front.style.overflow = 'hidden';
+    if (back) { back.style.borderRadius = '0px'; back.style.overflow = 'hidden'; }
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const cf = await html2canvas(front, {
+        scale: 6, useCORS: true, allowTaint: true, logging: false, backgroundColor: null,
+        onclone: (clonedDoc) => {
+            const el = clonedDoc.getElementById('card-front');
+            if (el) { el.style.borderRadius = '0px'; el.style.overflow = 'hidden'; }
+        }
+    });
     doc.addImage(cf.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, w, h);
     if (back) {
-        doc.addPage();
-        const cb = await html2canvas(back, { scale: 6, useCORS: true, allowTaint: true, logging: false });
+        const cb = await html2canvas(back, {
+            scale: 6, useCORS: true, allowTaint: true, logging: false, backgroundColor: null,
+            onclone: (clonedDoc) => {
+                const el = clonedDoc.getElementById('card-back');
+                if (el) { el.style.borderRadius = '0px'; el.style.overflow = 'hidden'; }
+            }
+        });
         doc.addImage(cb.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, w, h);
     }
-    front.style.borderRadius = oldFront;
-    if (back) back.style.borderRadius = oldBack;
+    front.style.borderRadius = oldFront; front.style.overflow = oldFrontOv;
+    if (back) { back.style.borderRadius = oldBack; back.style.overflow = oldBackOv; }
     doc.save(`IDCard_${profile.nisn}.pdf`);
 }
 
