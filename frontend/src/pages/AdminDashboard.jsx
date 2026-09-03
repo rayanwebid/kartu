@@ -180,10 +180,10 @@ export default function AdminDashboard() {
 
             if (templateForm.id) {
                 formData.append('_method', 'PUT');
-                await api.post(`/admin/templates/${templateForm.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await api.post(`/admin/templates/${templateForm.id}`, formData);
                 alert("Template diperbarui!");
             } else {
-                await api.post('/admin/templates', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                await api.post('/admin/templates', formData);
                 alert("Template ditambahkan!");
             }
 
@@ -191,10 +191,15 @@ export default function AdminDashboard() {
             setTemplateForm({});
             loadData();
         } catch (err) {
+            if (!err.response) {
+                const isNet = err.message === 'Network Error' || err.code === 'ERR_NETWORK';
+                alert("Gagal menyimpan template: Network Error — cek koneksi atau ukuran file (maks 5MB per gambar, total request maks 10MB). Coba file <2MB dulu. Detail: " + err.message);
+                return;
+            }
             const msg = err.response?.data?.message
                 || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null)
                 || err.message;
-            const hint = err.response?.status === 500 ? ' (cek Storage permission / log laravel.log)' : err.response?.status === 422 ? ' (cek format file: harus JPG/PNG max 5MB)' : '';
+            const hint = err.response?.status === 500 ? ' (cek Storage permission / log laravel.log)' : err.response?.status === 422 ? ' (cek format file: harus JPG/PNG max 5MB)' : err.response?.status === 413 ? ' (file terlalu besar, nginx/PHP limit 10MB)' : '';
             alert("Gagal menyimpan template: " + msg + hint);
         }
     };
