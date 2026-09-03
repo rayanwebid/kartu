@@ -3,11 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../lib/axios';
 import { CheckCircle2, Clock3 } from 'lucide-react';
 
-const InputLine = ({ label, name, type = "text", form, setForm }) => (
+const InputLine = ({ label, name, type = "text", form, setForm, placeholder }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-700)' }}>{label} <span style={{ color: '#e11d48' }}>*</span></label>
         <input
             type={type} required
+            placeholder={placeholder || ''}
             style={{ padding: '0.6rem 0.8rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', outline: 'none' }}
             value={form[name]}
             onChange={e => setForm({ ...form, [name]: e.target.value })}
@@ -18,7 +19,8 @@ const InputLine = ({ label, name, type = "text", form, setForm }) => (
 export default function Register() {
     const [form, setForm] = useState({
         full_name: '', email: '', password: '', password_confirmation: '',
-        nisn: '', nik: '', birth_place: '', birth_date: '', religion: 'Islam', address: '', major_id: ''
+        nisn: '', nik: '', birth_place: '', birth_date: '', religion: 'Islam',
+        dusun: '', rt: '', rw: '', desa: '', kecamatan: '', kabupaten: '', major_id: ''
     });
     const [majors, setMajors] = useState([]);
     const [error, setError] = useState(null);
@@ -48,8 +50,7 @@ export default function Register() {
         try {
             const res = await api.post('/register', form);
             setSuccess(res.data?.message || 'Pendaftaran berhasil! Akun Anda menunggu persetujuan admin. Anda akan bisa login setelah admin menyetujui.');
-            // reset form biar tidak dobel submit
-            setForm({ full_name: '', email: '', password: '', password_confirmation: '', nisn: '', nik: '', birth_place: '', birth_date: '', religion: 'Islam', address: '', major_id: '' });
+            setForm({ full_name: '', email: '', password: '', password_confirmation: '', nisn: '', nik: '', birth_place: '', birth_date: '', religion: 'Islam', dusun: '', rt: '', rw: '', desa: '', kecamatan: '', kabupaten: '', major_id: '' });
         } catch (err) {
             const data = err.response?.data;
             if (data?.errors) {
@@ -96,7 +97,7 @@ export default function Register() {
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-50)', padding: '1rem' }}>
-            <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '600px', padding: '1.5rem' }}>
+            <div className="glass-card animate-fade-in" style={{ width: '100%', maxWidth: '640px', padding: '1.5rem' }}>
                 <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
                     <h2 style={{ fontSize: '1.4rem' }}>Formulir Pendaftaran Siswa Baru</h2>
                     <p style={{ color: 'var(--text-500)', fontSize: '0.85rem' }}>Mohon isi data diri Anda dengan sebenar-benarnya untuk pendaftaran di <Link to="/" style={{ color: 'var(--primary-600)', fontWeight: 600, textDecoration: 'none' }}>{websiteName}</Link>. Semua kolom bertanda <span style={{ color: '#e11d48' }}>*</span> wajib diisi. <b>Setelah daftar, akun menunggu persetujuan admin.</b></p>
@@ -151,14 +152,23 @@ export default function Register() {
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-700)' }}>Alamat Lengkap <span style={{ color: '#e11d48' }}>*</span></label>
-                        <textarea
-                            required rows={3}
-                            style={{ padding: '0.6rem 0.8rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', outline: 'none' }}
-                            value={form.address}
-                            onChange={e => setForm({ ...form, address: e.target.value })}
-                        />
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-700)', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--surface-200)' }}>Alamat (isi per kolom — cukup nama, prefix otomatis)</div>
+                    <div style={{ background: '#f8fafc', border: '1px solid var(--surface-200)', borderRadius: '0.75rem', padding: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
+                            <InputLine form={form} setForm={setForm} label="Dusun" name="dusun" placeholder="Krajan" />
+                            <div style={{ display: 'flex', gap: '0.9rem', flex: 1 }}>
+                                <InputLine form={form} setForm={setForm} label="RT" name="rt" placeholder="003" />
+                                <InputLine form={form} setForm={setForm} label="RW" name="rw" placeholder="006" />
+                            </div>
+                        </div>
+                        <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>
+                            <InputLine form={form} setForm={setForm} label="Desa" name="desa" placeholder="Sambirejo" />
+                            <InputLine form={form} setForm={setForm} label="Kecamatan" name="kecamatan" placeholder="Genteng" />
+                        </div>
+                        <InputLine form={form} setForm={setForm} label="Kabupaten" name="kabupaten" placeholder="Banyuwangi" />
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', background: 'white', border: '1px dashed #cbd5e1', borderRadius: '0.5rem', padding: '0.5rem 0.6rem' }}>
+                            Contoh: Dusun <b>Krajan</b> → tampil <b>Dusun Krajan</b> • RT 3 + RW 6 → <b>RT 003/RW 006</b> • Desa Sambirejo, Kec. Genteng, Kab. Banyuwangi
+                        </div>
                     </div>
 
                     <div className="form-row" style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap' }}>

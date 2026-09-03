@@ -2,16 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
-import { User, CreditCard, LogOut, Upload, Printer, Edit2, Image, FileText } from 'lucide-react';
+import { User, CreditCard, LogOut, Upload, Printer, Edit2, Image, FileText, Lock, ShieldAlert } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
-const InputLine = ({ label, name, type = "text", form, setForm, isEditing }) => (
+const InputLine = ({ label, name, type = "text", form, setForm, isEditing, placeholder }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-700)' }}>{label}</label>
         <input
             type={type}
             disabled={!isEditing}
+            placeholder={placeholder || ''}
             style={{ padding: '0.6rem 0.8rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', outline: 'none', background: isEditing ? 'white' : 'var(--surface-50)' }}
             value={form[name] || ''}
             onChange={e => setForm({ ...form, [name]: e.target.value })}
@@ -46,23 +47,24 @@ export default function StudentDashboard() {
         });
     }, []);
 
+    const isLocked = profile?.is_locked;
+
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
             const formData = new FormData();
-            ['full_name', 'birth_place', 'birth_date', 'religion', 'address', 'major_id', 'email'].forEach(k => {
+            ['full_name', 'birth_place', 'birth_date', 'religion', 'major_id', 'email', 'dusun', 'rt', 'rw', 'desa', 'kecamatan', 'kabupaten'].forEach(k => {
                 if (form[k] !== undefined && form[k] !== null && form[k] !== '') formData.append(k, form[k]);
             });
             if (form.photoFile) formData.append('photo', form.photoFile);
 
             const res = await api.post('/siswa/profile', formData);
             setProfile(res.data);
-            // refresh card data biar major name update
             const cardRes = await api.get('/siswa/card');
             setProfile(cardRes.data.profile);
             setForm(cardRes.data.profile);
             setIsEditing(false);
-            alert('Profil berhasil diperbarui');
+            alert('Profil berhasil diperbarui dan sekarang terkunci. Perbaikan selanjutnya hubungi admin.');
         } catch (err) {
             const msg = err.response?.data?.message || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null) || 'Gagal memperbarui profil';
             alert(msg);
@@ -74,11 +76,8 @@ export default function StudentDashboard() {
         if (target) {
             const oldRadius = target.style.borderRadius;
             target.style.borderRadius = '0px';
-
             const canvas = await html2canvas(target, { scale: 6, useCORS: true, allowTaint: true, logging: false });
-
             target.style.borderRadius = oldRadius;
-
             const link = document.createElement('a');
             link.download = side === 'front' ? `Kartu_Depan_${profile.nisn}.png` : `Kartu_Belakang_${profile.nisn}.png`;
             link.href = canvas.toDataURL('image/png');
@@ -90,33 +89,25 @@ export default function StudentDashboard() {
         const front = document.getElementById('card-front');
         const back = document.getElementById('card-back');
         if (!front) return;
-
         const orientation = template?.orientation === 'landscape' ? 'l' : 'p';
         const w = template?.orientation === 'landscape' ? 86 : 54;
         const h = template?.orientation === 'landscape' ? 54 : 86;
-
         const doc = new jsPDF({ orientation, unit: 'mm', format: [w, h] });
-
         const oldFrontRadius = front.style.borderRadius;
         const oldBackRadius = back ? back.style.borderRadius : null;
-
         front.style.borderRadius = '0px';
         if (back) back.style.borderRadius = '0px';
-
         if (front) {
             const canvasFront = await html2canvas(front, { scale: 6, useCORS: true, allowTaint: true, logging: false });
             doc.addImage(canvasFront.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, w, h);
         }
-
         if (back) {
             doc.addPage();
             const canvasBack = await html2canvas(back, { scale: 6, useCORS: true, allowTaint: true, logging: false });
             doc.addImage(canvasBack.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, w, h);
         }
-
         front.style.borderRadius = oldFrontRadius;
         if (back) back.style.borderRadius = oldBackRadius;
-
         doc.save(`IDCard_${profile.nisn}.pdf`);
     };
 
@@ -164,17 +155,27 @@ export default function StudentDashboard() {
 
                     {activeTab === 'profile' && (
                         <div className="glass-card animate-fade-in" style={{ padding: '2rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                                 <h2>Informasi Profil</h2>
-                                {!isEditing && (
+                                {!isEditing && !isLocked && (
                                     <button onClick={() => setIsEditing(true)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>
                                         <Edit2 size={16} style={{ marginRight: '0.5rem' }} /> Edit Profil
                                     </button>
                                 )}
+                                {isLocked && !isEditing && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#fef3c7', color: '#92400e', padding: '0.4rem 0.7rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700, border: '1px solid #fde68a' }}><Lock size={14} /> Terkunci — hubungi admin</span>
+                                )}
                             </div>
 
-                            <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--surface-200)' }}>
+                            {isLocked && !isEditing && (
+                                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.75rem', padding: '0.75rem 0.9rem', fontSize: '0.85rem', color: '#92400e', display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    <ShieldAlert size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                                    <span><b>Biodata & foto terkunci</b> setelah edit pertama. Upload foto hanya sekali. Jika ingin memperbaiki, hubungi admin — admin akan <b>Buka Kunci</b> di Kelola Siswa.</span>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--surface-200)', flexWrap: 'wrap' }}>
                                     <div style={{ width: 100, height: 100, borderRadius: '8px', backgroundColor: 'var(--surface-200)', overflow: 'hidden', border: '3px solid white', boxShadow: 'var(--shadow-sm)', flexShrink: 0, aspectRatio: '1 / 1' }}>
                                         {profile?.photo_path ? (
                                             <img src={`/api/image?path=${profile.photo_path}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
@@ -184,19 +185,23 @@ export default function StudentDashboard() {
                                             </div>
                                         )}
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Foto Profil</h3>
-                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-500)', marginBottom: '0.75rem' }}>Persegi 1:1 — JPG/PNG (Maks 2MB). Tidak dipotong oval, tidak ditarik melebar.</p>
+                                    <div style={{ flex: 1, minWidth: '200px' }}>
+                                        <h3 style={{ fontSize: '1.15rem', marginBottom: '0.25rem' }}>Foto Profil</h3>
+                                        <p style={{ fontSize: '0.82rem', color: 'var(--text-500)', marginBottom: '0.6rem' }}>
+                                            {profile?.photo_path ? 'Foto sudah terunggah — hanya bisa diganti oleh admin.' : 'Persegi 1:1 — JPG/PNG (Maks 2MB). Upload hanya sekali, setelah simpan akan terkunci.'}
+                                        </p>
                                         <input
                                             type="file" accept="image/png, image/jpeg"
-                                            disabled={!isEditing}
+                                            disabled={!isEditing || !!profile?.photo_path}
+                                            title={profile?.photo_path ? 'Foto hanya sekali — hubungi admin' : 'Pilih foto'}
                                             onChange={e => setForm({ ...form, photoFile: e.target.files[0] })}
-                                            style={{ fontSize: '0.875rem' }}
+                                            style={{ fontSize: '0.85rem', opacity: (!isEditing || !!profile?.photo_path) ? 0.5 : 1 }}
                                         />
+                                        {profile?.photo_path && isEditing && <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.3rem' }}>Foto sudah ada — tidak bisa upload lagi. Hubungi admin.</div>}
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="admin-form-grid">
                                     <InputLine form={form} setForm={setForm} isEditing={isEditing} label="Nama Lengkap" name="full_name" />
                                     <InputLine form={form} setForm={setForm} isEditing={isEditing} label="Alamat Email" name="email" />
 
@@ -246,19 +251,28 @@ export default function StudentDashboard() {
                                     )}
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-700)' }}>Alamat Lengkap</label>
-                                    <textarea
-                                        disabled={!isEditing}
-                                        rows={3}
-                                        style={{ padding: '0.6rem 0.8rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', outline: 'none', background: isEditing ? 'white' : 'var(--surface-50)' }}
-                                        value={form.address || ''}
-                                        onChange={e => setForm({ ...form, address: e.target.value })}
-                                    />
+                                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--primary-700)', paddingTop: '0.5rem', borderTop: '1px solid var(--surface-200)' }}>Alamat (per kolom — tampil otomatis terformat)</div>
+                                <div style={{ background: isEditing ? 'white' : '#f8fafc', border: '1px solid var(--surface-200)', borderRadius: '0.75rem', padding: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                        <InputLine form={form} setForm={setForm} isEditing={isEditing} label="Dusun" name="dusun" placeholder="Krajan" />
+                                        <div style={{ display: 'flex', gap: '0.75rem', flex: 1 }}>
+                                            <InputLine form={form} setForm={setForm} isEditing={isEditing} label="RT" name="rt" placeholder="003" />
+                                            <InputLine form={form} setForm={setForm} isEditing={isEditing} label="RW" name="rw" placeholder="006" />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                        <InputLine form={form} setForm={setForm} isEditing={isEditing} label="Desa" name="desa" placeholder="Sambirejo" />
+                                        <InputLine form={form} setForm={setForm} isEditing={isEditing} label="Kecamatan" name="kecamatan" placeholder="Genteng" />
+                                    </div>
+                                    <InputLine form={form} setForm={setForm} isEditing={isEditing} label="Kabupaten" name="kabupaten" placeholder="Banyuwangi" />
+                                    <div style={{ fontSize: '0.78rem', color: '#475569', background: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '0.5rem', padding: '0.5rem 0.6rem' }}>
+                                        Pratinjau alamat kartu: <b>{(form.formatted_address || profile?.formatted_address || profile?.address || '—').toString()}</b>
+                                        <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.2rem' }}>Contoh: Dusun Krajan, RT 003/RW 006, Desa Sambirejo, Kec. Genteng, Kab. Banyuwangi</div>
+                                    </div>
                                 </div>
 
                                 {isEditing && (
-                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                         <button type="button" onClick={() => { setIsEditing(false); setForm(profile); }} className="btn btn-secondary">Batal</button>
                                         <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }}>Simpan Perubahan</button>
                                     </div>
@@ -269,9 +283,9 @@ export default function StudentDashboard() {
 
                     {activeTab === 'card' && (
                         <div className="glass-card animate-fade-in" style={{ padding: '2rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }} className="no-print">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '0.75rem' }} className="no-print">
                                 <h2>Cetak Kartu Pelajar</h2>
-                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                     <button onClick={() => downloadImage('front')} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>
                                         <Image size={16} style={{ marginRight: '0.5rem' }} /> PNG (Depan)
                                     </button>
@@ -309,7 +323,6 @@ export default function StudentDashboard() {
                                                 ) : (
                                                     <div style={{ width: '38px', height: '38px' }} />
                                                 )}
-
                                                 <div style={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                                     <div style={{ fontSize: '4.5px', textTransform: 'uppercase', color: 'white', fontWeight: 600, letterSpacing: '0.2px' }}>{template?.foundation_name || 'NAMA YAYASAN'}</div>
                                                     <div style={{ fontSize: '7.5px', fontWeight: 900, color: '#FFFF00', textShadow: '1px 1px 1px rgba(0,0,0,0.5)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden' }}>{template?.school_name || 'NAMA SEKOLAH'}</div>
@@ -340,7 +353,7 @@ export default function StudentDashboard() {
                                                         <tr>
                                                             <td style={{ verticalAlign: 'top', paddingTop: '1px' }}>Alamat</td>
                                                             <td style={{ verticalAlign: 'top', paddingTop: '1px' }}>:</td>
-                                                            <td style={{ lineHeight: '1.25', textTransform: 'uppercase', wordBreak: 'break-word', whiteSpace: 'normal' }}>{(profile?.address || '').toUpperCase()}</td>
+                                                            <td style={{ lineHeight: '1.25', textTransform: 'uppercase', wordBreak: 'break-word', whiteSpace: 'normal' }}>{(profile?.formatted_address || profile?.address || '').toUpperCase()}</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>
@@ -386,7 +399,7 @@ export default function StudentDashboard() {
                                                     <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>NISN / NIK</span><span>: {profile?.nisn} / {profile?.nik}</span></div>
                                                     <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>TTL</span><span style={{ textTransform: 'uppercase' }}>: {(profile?.birth_place || '').toUpperCase()}, {profile?.birth_date}</span></div>
                                                     <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Agama</span><span style={{ textTransform: 'uppercase' }}>: {(profile?.religion || '').toUpperCase()}</span></div>
-                                                    <div style={{ display: 'flex', alignItems: 'flex-start' }}><span style={{ width: '60px', flexShrink: 0 }}>Alamat</span><span style={{ width: '8px', flexShrink: 0, textAlign: 'center' }}>:</span><span style={{ flex: 1, textTransform: 'uppercase', wordBreak: 'break-word', whiteSpace: 'normal', lineHeight: '1.25' }}>{(profile?.address || '').toUpperCase()}</span></div>
+                                                    <div style={{ display: 'flex', alignItems: 'flex-start' }}><span style={{ width: '60px', flexShrink: 0 }}>Alamat</span><span style={{ width: '8px', flexShrink: 0, textAlign: 'center' }}>:</span><span style={{ flex: 1, textTransform: 'uppercase', wordBreak: 'break-word', whiteSpace: 'normal', lineHeight: '1.25' }}>{(profile?.formatted_address || profile?.address || '').toUpperCase()}</span></div>
                                                 </div>
                                             </div>
 
@@ -413,7 +426,6 @@ export default function StudentDashboard() {
                                         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}></div>
                                     </div>
                                 )}
-
                             </div>
                         </div>
                     )}

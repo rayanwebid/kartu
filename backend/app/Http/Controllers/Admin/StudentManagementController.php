@@ -63,6 +63,11 @@ class StudentManagementController extends Controller
         return response()->json(['message' => 'Pendaftaran ditolak.']);
     }
 
+    public function unlock(StudentProfile $student) {
+        $student->update(['is_locked' => false]);
+        return response()->json(['message' => 'Biodata dibuka. Siswa bisa edit kembali satu kali.', 'profile' => $student->fresh()->load(['user','major'])]);
+    }
+
     public function show(StudentProfile $student) {
         return response()->json($student->load(['user','major']));
     }
@@ -96,9 +101,16 @@ class StudentManagementController extends Controller
             'birth_place' => 'required|string',
             'birth_date' => 'required|date',
             'religion' => 'required|string',
-            'address' => 'required|string',
             'major_id' => 'required|exists:majors,id',
+            'dusun' => 'required|string|max:255',
+            'rt' => 'required|string|max:10',
+            'rw' => 'required|string|max:10',
+            'desa' => 'required|string|max:255',
+            'kecamatan' => 'required|string|max:255',
+            'kabupaten' => 'required|string|max:255',
         ]);
+
+        $address = StudentProfile::composeAddress($validated);
 
         $user = User::create([
             'name' => $request->full_name,
@@ -117,8 +129,15 @@ class StudentManagementController extends Controller
             'birth_place' => $request->birth_place,
             'birth_date' => $request->birth_date,
             'religion' => $request->religion,
-            'address' => $request->address,
+            'address' => $address,
+            'dusun' => $validated['dusun'],
+            'rt' => $validated['rt'],
+            'rw' => $validated['rw'],
+            'desa' => $validated['desa'],
+            'kecamatan' => $validated['kecamatan'],
+            'kabupaten' => $validated['kabupaten'],
             'major_id' => $request->major_id,
+            'is_locked' => false,
         ]);
 
         return response()->json($student->load(['user', 'major']), 201);
@@ -133,9 +152,16 @@ class StudentManagementController extends Controller
             'birth_place' => 'sometimes|string',
             'birth_date' => 'sometimes|date',
             'religion' => 'sometimes|string',
+            'dusun' => 'sometimes|string|max:255',
+            'rt' => 'sometimes|string|max:10',
+            'rw' => 'sometimes|string|max:10',
+            'desa' => 'sometimes|string|max:255',
+            'kecamatan' => 'sometimes|string|max:255',
+            'kabupaten' => 'sometimes|string|max:255',
             'address' => 'sometimes|string',
             'major_id' => 'sometimes|exists:majors,id',
             'password' => 'sometimes|string|min:6',
+            'is_locked' => 'sometimes|boolean',
         ]);
 
         // sync user
@@ -145,10 +171,20 @@ class StudentManagementController extends Controller
         if (isset($validated['password'])) $userPatch['password'] = Hash::make($validated['password']);
         if (!empty($userPatch)) $student->user->update($userPatch);
 
-        $profilePatch = collect($validated)->only(['full_name','nisn','nik','birth_place','birth_date','religion','address','major_id'])->toArray();
+        $profilePatch = collect($validated)->only(['full_name','nisn','nik','birth_place','birth_date','religion','address','major_id','dusun','rt','rw','desa','kecamatan','kabupaten','is_locked'])->toArray();
+        // Jika ada pecahan alamat, sinkronkan address terformat
+        $addrKeys = ['dusun','rt','rw','desa','kecamatan','kabupaten'];
+        $hasAddr = false; foreach ($addrKeys as $k) if (array_key_exists($k, $profilePatch)) { $hasAddr = true; break; }
+        if ($hasAddr) {
+            $merged = array_merge(
+                ['dusun'=>$student->dusun,'rt'=>$student->rt,'rw'=>$student->rw,'desa'=>$student->desa,'kecamatan'=>$student->kecamatan,'kabupaten'=>$student->kabupaten],
+                array_intersect_key($profilePatch, array_flip($addrKeys))
+            );
+            $profilePatch['address'] = StudentProfile::composeAddress($merged);
+        }
         if (!empty($profilePatch)) $student->update($profilePatch);
 
-        // photo via admin
+        // photo via admin — admin boleh ganti kapan saja
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('photos', 'public');
             $student->update(['photo_path' => $path]);

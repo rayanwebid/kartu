@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
-import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye, Clock, UserCheck, UserX } from 'lucide-react';
+import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye, Clock, UserCheck, UserX, Lock, Unlock } from 'lucide-react';
 import { StudentCard, downloadCardImage, downloadCardPDF } from '../components/StudentCard';
 
 export default function AdminDashboard() {
@@ -23,7 +23,7 @@ export default function AdminDashboard() {
 
     // Forms
     const [addStudentMod, setAddStudentMod] = useState(false);
-    const [studentForm, setStudentForm] = useState({ religion: 'Islam' });
+    const [studentForm, setStudentForm] = useState({ religion: 'Islam', dusun: '', rt: '', rw: '', desa: '', kecamatan: '', kabupaten: '' });
     const [editingStudent, setEditingStudent] = useState(null);
     const [editForm, setEditForm] = useState({});
     const [addTemplateMod, setAddTemplateMod] = useState(false);
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
             await api.post('/admin/students', studentForm);
             alert("Siswa Didaftarkan!");
             setAddStudentMod(false);
-            setStudentForm({ religion: 'Islam' });
+            setStudentForm({ religion: 'Islam', dusun: '', rt: '', rw: '', desa: '', kecamatan: '', kabupaten: '' });
             loadStudents(1);
         } catch (err) { alert(err.response?.data?.message || JSON.stringify(err.response?.data?.errors) || "Gagal mendaftarkan siswa."); }
     };
@@ -156,11 +156,31 @@ export default function AdminDashboard() {
                 birth_place: data.birth_place,
                 birth_date: data.birth_date ? data.birth_date.substring(0, 10) : '',
                 religion: data.religion,
+                dusun: data.dusun || '',
+                rt: data.rt || '',
+                rw: data.rw || '',
+                desa: data.desa || '',
+                kecamatan: data.kecamatan || '',
+                kabupaten: data.kabupaten || '',
                 address: data.address,
+                is_locked: !!data.is_locked,
+                formatted_address: data.formatted_address || data.address || '',
                 major_id: data.major_id,
                 password: '',
             });
         } catch (e) { alert('Gagal memuat data siswa'); }
+    };
+
+    const handleUnlock = async () => {
+        if (!window.confirm('Buka kunci biodata siswa ini? Siswa akan bisa edit satu kali lagi.')) return;
+        try {
+            await api.post(`/admin/students/${editingStudent.id}/unlock`);
+            const res = await api.get(`/admin/students/${editingStudent.id}`);
+            setEditingStudent(res.data);
+            setEditForm(f => ({ ...f, is_locked: false }));
+            loadStudents(page);
+            alert('Biodata dibuka. Siswa bisa edit kembali.');
+        } catch (e) { alert(e.response?.data?.message || 'Gagal membuka kunci'); }
     };
 
     const handleEditSubmit = async (e) => {
@@ -384,10 +404,16 @@ export default function AdminDashboard() {
                                             {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                         </select>
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }} className="full-span">
-                                        <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Alamat Lengkap</label>
-                                        <textarea required rows="2" className="form-input" style={{ padding: '0.6rem' }} value={studentForm.address || ''} onChange={e => setStudentForm({ ...studentForm, address: e.target.value })} />
+                                    <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary-700)', marginTop: '0.5rem', borderTop: '1px solid var(--surface-200)', paddingTop: '0.75rem' }} className="full-span">Alamat (per kolom — cukup nama, tampil otomatis terformat)</div>
+                                    <Input l="Dusun" v={studentForm.dusun} onChange={e => setStudentForm({ ...studentForm, dusun: e.target.value })} />
+                                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                        <Input l="RT" v={studentForm.rt} onChange={e => setStudentForm({ ...studentForm, rt: e.target.value })} />
+                                        <Input l="RW" v={studentForm.rw} onChange={e => setStudentForm({ ...studentForm, rw: e.target.value })} />
                                     </div>
+                                    <Input l="Desa" v={studentForm.desa} onChange={e => setStudentForm({ ...studentForm, desa: e.target.value })} />
+                                    <Input l="Kecamatan" v={studentForm.kecamatan} onChange={e => setStudentForm({ ...studentForm, kecamatan: e.target.value })} />
+                                    <Input l="Kabupaten" v={studentForm.kabupaten} onChange={e => setStudentForm({ ...studentForm, kabupaten: e.target.value })} />
+                                    <div style={{ gridColumn: 'span 2', fontSize: '0.72rem', color: '#64748b', background: 'white', border: '1px dashed #cbd5e1', borderRadius: '0.5rem', padding: '0.5rem 0.6rem' }} className="full-span">Contoh: Krajan → Dusun Krajan • RT 3 RW 6 → RT 003/RW 006 • tampil: Dusun Krajan, RT 003/RW 006, Desa Sambirejo, Kec. Genteng, Kab. Banyuwangi</div>
                                     <button type="submit" className="btn btn-primary full-span" style={{ gridColumn: 'span 2' }}>Simpan Akun Siswa</button>
                                 </form>
                             )}
@@ -399,6 +425,15 @@ export default function AdminDashboard() {
                                             <h3>Edit Siswa: {editingStudent.full_name}</h3>
                                             <button type="button" onClick={() => setEditingStudent(null)} style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.5rem' }}><X size={16} /></button>
                                         </div>
+                                        {editForm.is_locked && (
+                                            <div style={{ gridColumn: 'span 2', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', fontSize: '0.82rem', color: '#92400e', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <Lock size={14} /> Biodata terkunci — siswa tidak bisa edit. <button type="button" onClick={handleUnlock} className="btn btn-secondary" style={{ padding: '0.35rem 0.7rem', fontSize: '0.8rem' }}><Unlock size={14} style={{ marginRight: '0.3rem' }} /> Buka Kunci</button>
+                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Kartu tampil: {editForm.formatted_address || editForm.address || '—'}</span>
+                                            </div>
+                                        )}
+                                        {!editForm.is_locked && editForm.formatted_address && (
+                                            <div style={{ gridColumn: 'span 2', fontSize: '0.78rem', color: '#475569', background: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '0.5rem', padding: '0.45rem 0.6rem' }}>Pratinjau kartu: <b>{editForm.formatted_address}</b></div>
+                                        )}
                                         <Input l="Nama Lengkap" v={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} />
                                         <Input l="Email Akses" type="email" v={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} />
                                         <Input l="NISN" v={editForm.nisn} onChange={e => setEditForm({ ...editForm, nisn: e.target.value })} />
@@ -421,12 +456,21 @@ export default function AdminDashboard() {
                                         </div>
                                         <Input l="Password Baru (kosongkan jika tidak ganti)" type="password" v={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} />
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Foto (opsional)</label>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Foto (admin boleh ganti kapan saja)</label>
                                             <input type="file" accept="image/*" onChange={e => setEditForm({ ...editForm, photoFile: e.target.files[0] })} style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }} />
                                         </div>
+                                        <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary-700)', marginTop: '0.25rem', borderTop: '1px solid var(--surface-200)', paddingTop: '0.75rem' }}>Alamat (per kolom)</div>
+                                        <Input l="Dusun" v={editForm.dusun} onChange={e => setEditForm({ ...editForm, dusun: e.target.value })} />
+                                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                            <Input l="RT" v={editForm.rt} onChange={e => setEditForm({ ...editForm, rt: e.target.value })} />
+                                            <Input l="RW" v={editForm.rw} onChange={e => setEditForm({ ...editForm, rw: e.target.value })} />
+                                        </div>
+                                        <Input l="Desa" v={editForm.desa} onChange={e => setEditForm({ ...editForm, desa: e.target.value })} />
+                                        <Input l="Kecamatan" v={editForm.kecamatan} onChange={e => setEditForm({ ...editForm, kecamatan: e.target.value })} />
+                                        <Input l="Kabupaten" v={editForm.kabupaten} onChange={e => setEditForm({ ...editForm, kabupaten: e.target.value })} />
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Alamat</label>
-                                            <textarea rows="2" style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }} value={editForm.address || ''} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
+                                            <label style={{ fontSize: '0.7rem', fontWeight: 600 }}>Alamat legacy (opsional fallback)</label>
+                                            <textarea rows="2" style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem', fontSize: '0.85rem' }} value={editForm.address || ''} onChange={e => setEditForm({ ...editForm, address: e.target.value })} placeholder="Hanya jika tidak pakai 6 kolom — kosongkan jika isi per kolom" />
                                         </div>
                                         <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                             <button type="button" onClick={() => setEditingStudent(null)} className="btn btn-secondary">Batal</button>

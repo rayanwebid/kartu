@@ -21,8 +21,13 @@ class AuthController extends Controller
             'birth_place' => 'required|string|max:255',
             'birth_date' => 'required|date',
             'religion' => 'required|string',
-            'address' => 'required|string',
             'major_id' => 'required|exists:majors,id',
+            'dusun' => 'required|string|max:255',
+            'rt' => 'required|string|max:10',
+            'rw' => 'required|string|max:10',
+            'desa' => 'required|string|max:255',
+            'kecamatan' => 'required|string|max:255',
+            'kabupaten' => 'required|string|max:255',
         ], [
             'email.required' => 'Alamat email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
@@ -39,9 +44,14 @@ class AuthController extends Controller
             'birth_date.required' => 'Tanggal lahir wajib diisi.',
             'birth_date.date' => 'Format tanggal lahir tidak valid.',
             'religion.required' => 'Agama wajib dipilih.',
-            'address.required' => 'Alamat lengkap wajib diisi.',
             'major_id.required' => 'Jurusan wajib dipilih.',
             'major_id.exists' => 'Jurusan tidak valid.',
+            'dusun.required' => 'Dusun wajib diisi.',
+            'rt.required' => 'RT wajib diisi.',
+            'rw.required' => 'RW wajib diisi.',
+            'desa.required' => 'Desa wajib diisi.',
+            'kecamatan.required' => 'Kecamatan wajib diisi.',
+            'kabupaten.required' => 'Kabupaten wajib diisi.',
         ]);
 
         $user = User::create([
@@ -51,6 +61,15 @@ class AuthController extends Controller
             'role' => 'siswa',
             'approval_status' => 'pending',
             'approved_at' => null,
+        ]);
+
+        $address = StudentProfile::composeAddress([
+            'dusun' => $request->dusun,
+            'rt' => $request->rt,
+            'rw' => $request->rw,
+            'desa' => $request->desa,
+            'kecamatan' => $request->kecamatan,
+            'kabupaten' => $request->kabupaten,
         ]);
 
         StudentProfile::create([
@@ -63,7 +82,14 @@ class AuthController extends Controller
             'birth_date' => $request->birth_date,
             'religion' => $request->religion,
             'major_id' => $request->major_id,
-            'address' => $request->address,
+            'address' => $address,
+            'dusun' => $request->dusun,
+            'rt' => $request->rt,
+            'rw' => $request->rw,
+            'desa' => $request->desa,
+            'kecamatan' => $request->kecamatan,
+            'kabupaten' => $request->kabupaten,
+            'is_locked' => false,
         ]);
 
         // Siswa baru pending — jangan beri token, harus menunggu persetujuan admin
