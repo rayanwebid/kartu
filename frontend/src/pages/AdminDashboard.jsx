@@ -190,7 +190,13 @@ export default function AdminDashboard() {
             setAddTemplateMod(false);
             setTemplateForm({});
             loadData();
-        } catch (err) { alert("Gagal menyimpan template: " + (err.response?.data?.message || err.message)); }
+        } catch (err) {
+            const msg = err.response?.data?.message
+                || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null)
+                || err.message;
+            const hint = err.response?.status === 500 ? ' (cek Storage permission / log laravel.log)' : err.response?.status === 422 ? ' (cek format file: harus JPG/PNG max 5MB)' : '';
+            alert("Gagal menyimpan template: " + msg + hint);
+        }
     };
     const deleteTemplate = async (id) => {
         if (window.confirm("Hapus desain ini?")) {

@@ -26,6 +26,9 @@ class CardTemplateController extends Controller
             'principal_name' => 'sometimes|nullable|string',
             'principal_nip' => 'sometimes|nullable|string',
             'card_type' => 'sometimes|in:front,back',
+            'background_image' => 'sometimes|file|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+            'logo_image' => 'sometimes|file|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+            'signature_image' => 'sometimes|file|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
         ]);
 
         if ($request->hasFile('background_image')) {
@@ -68,6 +71,9 @@ class CardTemplateController extends Controller
             'principal_name' => 'sometimes|nullable|string',
             'principal_nip' => 'sometimes|nullable|string',
             'card_type' => 'sometimes|in:front,back',
+            'background_image' => 'sometimes|file|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+            'logo_image' => 'sometimes|file|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+            'signature_image' => 'sometimes|file|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
         ]);
 
         if ($request->hasFile('background_image')) {
