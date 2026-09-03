@@ -149,15 +149,19 @@ button {
   }
   /* header fixed offset */
   .landing-wrapper header { padding-top: 7rem !important; }
-  /* dashboard flex column */
+  /* dashboard: menu kiri pindah ke ATAS (bukan bawah) — pill horizontal sticky */
   .admin-layout,
   .student-layout {
     flex-direction: column !important;
     padding: 1rem !important;
-    gap: 1rem !important;
+    gap: 0.85rem !important;
   }
   .admin-sidebar,
   .student-sidebar {
+    order: -1 !important;
+    position: sticky !important;
+    top: 0.5rem !important;
+    z-index: 20 !important;
     width: 100% !important;
     min-width: 0 !important;
     flex-direction: row !important;
@@ -183,6 +187,7 @@ button {
   }
   .admin-main,
   .student-main {
+    order: 1 !important;
     padding: 1rem !important;
     border-radius: 0.75rem !important;
   }
