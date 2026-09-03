@@ -62,8 +62,8 @@ export function StudentCard({ profile, template, backTemplate, schoolName }) {
                             </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 18px', marginTop: '2px', zIndex: 10 }}>
-                            <div style={{ width: '65px', height: '85px', border: '2px solid white', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', backgroundColor: '#ccc' }}>
-                                {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                            <div style={{ width: '75px', height: '75px', aspectRatio: '1 / 1', border: '2px solid white', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', backgroundColor: '#ccc', flexShrink: 0 }}>
+                                {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />}
                             </div>
                             <div style={{ width: '65px', height: '65px', background: 'white', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
                                 {profile?.nisn && <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${profile.nisn}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%' }} />}
@@ -101,8 +101,8 @@ export function StudentCard({ profile, template, backTemplate, schoolName }) {
                             <h5 style={{ fontSize: '12px', color: '#1e3a8a', fontWeight: 800 }}>{schoolName || 'SMKS MUHAMMADIYAH 2 GENTENG'}</h5>
                         </div>
                         <div style={{ display: 'flex', gap: '12px', flex: 1, marginTop: '8px' }}>
-                            <div style={{ width: '60px', height: '80px', background: '#ccc', borderRadius: '4px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                                {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                            <div style={{ width: '70px', height: '70px', aspectRatio: '1 / 1', background: '#ccc', borderRadius: '6px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', flexShrink: 0 }}>
+                                {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />}
                             </div>
                             <div style={{ flex: 1, fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 600 }}>
                                 <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Nama</span><span>: {profile?.full_name}</span></div>

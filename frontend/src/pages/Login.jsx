@@ -51,15 +51,18 @@ export default function Login() {
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-700)' }}>Alamat Email</label>
+                        <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-700)' }}>Alamat Email / Username (NISN)</label>
                         <input
-                            type="email"
+                            type="text"
                             required
+                            inputMode="text"
+                            autoComplete="username"
                             style={{ padding: '0.75rem 1rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', outline: 'none', transition: 'all 0.2s' }}
-                            placeholder="admin@admin.com / siswa@email.com"
+                            placeholder="NISN (contoh: 0117030646) atau nisn@kartu.smkmuda.id / admin@admin.com"
                             value={credentials.email}
-                            onChange={e => setCredentials({ ...credentials, email: e.target.value })}
+                            onChange={e => setCredentials({ ...credentials, email: e.target.value.trim() })}
                         />
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Siswa bisa login pakai NISN saja (tanpa @kartu.smkmuda.id)</span>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

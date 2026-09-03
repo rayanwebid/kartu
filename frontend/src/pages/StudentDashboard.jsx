@@ -30,6 +30,7 @@ export default function StudentDashboard() {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [form, setForm] = useState({});
+    const [majors, setMajors] = useState([]);
 
     useEffect(() => {
         api.get('/siswa/card').then(res => {
@@ -40,23 +41,31 @@ export default function StudentDashboard() {
             setWebsiteName(res.data.website_name || 'e-Pelajar');
             setForm(res.data.profile);
         }).catch(console.error).finally(() => setLoading(false));
+        api.get('/public/majors').then(res => setMajors(res.data)).catch(() => {
+            api.get('/admin/majors').then(res => setMajors(res.data)).catch(() => {});
+        });
     }, []);
 
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
             const formData = new FormData();
-            Object.keys(form).forEach(key => form[key] && formData.append(key, form[key]));
+            ['full_name', 'birth_place', 'birth_date', 'religion', 'address', 'major_id', 'email'].forEach(k => {
+                if (form[k] !== undefined && form[k] !== null && form[k] !== '') formData.append(k, form[k]);
+            });
             if (form.photoFile) formData.append('photo', form.photoFile);
 
-            const res = await api.post('/siswa/profile', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await api.post('/siswa/profile', formData);
             setProfile(res.data);
+            // refresh card data biar major name update
+            const cardRes = await api.get('/siswa/card');
+            setProfile(cardRes.data.profile);
+            setForm(cardRes.data.profile);
             setIsEditing(false);
             alert('Profil berhasil diperbarui');
         } catch (err) {
-            alert('Gagal memperbarui profil');
+            const msg = err.response?.data?.message || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null) || 'Gagal memperbarui profil';
+            alert(msg);
         }
     };
 
@@ -166,9 +175,9 @@ export default function StudentDashboard() {
 
                             <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--surface-200)' }}>
-                                    <div style={{ width: 100, height: 100, borderRadius: '50%', backgroundColor: 'var(--surface-200)', overflow: 'hidden', border: '4px solid white', boxShadow: 'var(--shadow-sm)' }}>
+                                    <div style={{ width: 100, height: 100, borderRadius: '8px', backgroundColor: 'var(--surface-200)', overflow: 'hidden', border: '3px solid white', boxShadow: 'var(--shadow-sm)', flexShrink: 0, aspectRatio: '1 / 1' }}>
                                         {profile?.photo_path ? (
-                                            <img src={`/storage/${profile.photo_path}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={`/api/image?path=${profile.photo_path}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
                                         ) : (
                                             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                                                 <User size={40} />
@@ -177,7 +186,7 @@ export default function StudentDashboard() {
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Foto Profil</h3>
-                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-500)', marginBottom: '0.75rem' }}>Format JPG/PNG standar pass foto (Maks 2MB)</p>
+                                        <p style={{ fontSize: '0.875rem', color: 'var(--text-500)', marginBottom: '0.75rem' }}>Persegi 1:1 — JPG/PNG (Maks 2MB). Tidak dipotong oval, tidak ditarik melebar.</p>
                                         <input
                                             type="file" accept="image/png, image/jpeg"
                                             disabled={!isEditing}
@@ -219,6 +228,22 @@ export default function StudentDashboard() {
                                         <option value="Buddha">Buddha</option>
                                         <option value="Konghucu">Konghucu</option>
                                     </select>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-700)' }}>Jurusan / Konsentrasi Keahlian</label>
+                                    <select
+                                        disabled={!isEditing}
+                                        style={{ padding: '0.6rem 0.8rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', outline: 'none', background: isEditing ? 'white' : 'var(--surface-50)' }}
+                                        value={form.major_id || ''}
+                                        onChange={e => setForm({ ...form, major_id: e.target.value })}
+                                    >
+                                        <option value="">-- Pilih Jurusan --</option>
+                                        {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    </select>
+                                    {!isEditing && profile?.major?.name && (
+                                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Saat ini: {profile.major.name}</span>
+                                    )}
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -293,10 +318,10 @@ export default function StudentDashboard() {
                                                 </div>
                                             </div>
 
-                                            {/* Media Section: Photo & QR */}
+                                            {/* Media Section: Photo & QR — persegi 1:1, tidak oval, tidak ketarik */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 18px', marginTop: '2px', zIndex: 10 }}>
-                                                <div style={{ width: '65px', height: '85px', border: '2px solid white', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', backgroundColor: '#ccc' }}>
-                                                    {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                                <div style={{ width: '75px', height: '75px', aspectRatio: '1 / 1', border: '2px solid white', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', backgroundColor: '#ccc', flexShrink: 0 }}>
+                                                    {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />}
                                                 </div>
                                                 <div style={{ width: '65px', height: '65px', background: 'white', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
                                                     {profile?.nisn && <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${profile.nisn}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%' }} />}
@@ -350,9 +375,9 @@ export default function StudentDashboard() {
                                             </div>
 
                                             <div style={{ display: 'flex', gap: '12px', flex: 1, marginTop: '8px' }}>
-                                                {/* Photo */}
-                                                <div style={{ width: '60px', height: '80px', background: '#ccc', borderRadius: '4px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
-                                                    {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                                {/* Photo — persegi 1:1 */}
+                                                <div style={{ width: '70px', height: '70px', aspectRatio: '1 / 1', background: '#ccc', borderRadius: '6px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', flexShrink: 0 }}>
+                                                    {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />}
                                                 </div>
 
                                                 {/* Data */}

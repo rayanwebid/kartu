@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\CardTemplateController;
 use App\Http\Controllers\Admin\LandingContentController;
 
 Route::get('/public/landing-content', [LandingContentController::class, 'publicShow']);
+Route::get('/public/majors', [MajorController::class, 'index']);
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);

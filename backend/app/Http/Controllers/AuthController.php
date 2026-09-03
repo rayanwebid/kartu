@@ -53,11 +53,32 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string',
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $login = trim($request->input('email'));
+
+        $user = null;
+
+        // Jika input adalah email valid, cari by email
+        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
+            $user = User::where('email', $login)->first();
+        } else {
+            // Coba sebagai NISN langsung
+            $profile = StudentProfile::where('nisn', $login)->first();
+            if ($profile) {
+                $user = User::find($profile->user_id);
+            }
+            // Fallback: NISN@kartu.smkmuda.id
+            if (!$user) {
+                $user = User::where('email', $login . '@kartu.smkmuda.id')->first();
+            }
+            // Fallback: cari email persis (jika NISN numeric tapi disimpan sebagai email tanpa domain)
+            if (!$user) {
+                $user = User::where('email', $login)->first();
+            }
+        }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
