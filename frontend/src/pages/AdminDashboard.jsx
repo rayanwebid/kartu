@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
-import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye, Clock, UserCheck, UserX, Lock, Unlock, RotateCcw } from 'lucide-react';
+import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye, Clock, UserCheck, UserX, Lock, Unlock, RotateCcw, Crop, Upload } from 'lucide-react';
 import { StudentCard, downloadCardImage, downloadCardPDF } from '../components/StudentCard';
+import PhotoCropModal from '../components/PhotoCropModal';
 
 export default function AdminDashboard() {
     const { user, logout } = useAuthStore();
@@ -26,6 +27,8 @@ export default function AdminDashboard() {
     const [studentForm, setStudentForm] = useState({ religion: 'Islam', dusun: '', rt: '', rw: '', desa: '', kecamatan: '', kabupaten: '' });
     const [editingStudent, setEditingStudent] = useState(null);
     const [editForm, setEditForm] = useState({});
+    const [adminCropFile, setAdminCropFile] = useState(null);
+    const [adminCropPreviewUrl, setAdminCropPreviewUrl] = useState(null);
     const [addTemplateMod, setAddTemplateMod] = useState(false);
     const [templateForm, setTemplateForm] = useState({});
 
@@ -145,6 +148,8 @@ export default function AdminDashboard() {
 
     const openEdit = async (s) => {
         try {
+            if (adminCropPreviewUrl) try { URL.revokeObjectURL(adminCropPreviewUrl); } catch {}
+            setAdminCropFile(null); setAdminCropPreviewUrl(null);
             const res = await api.get(`/admin/students/${s.id}`);
             const data = res.data;
             setEditingStudent(data);
@@ -193,6 +198,27 @@ export default function AdminDashboard() {
             loadStudents(page);
             alert('Reset Edit berhasil. Siswa dapat mengedit lagi.');
         } catch (e) { alert(e.response?.data?.message || 'Gagal Reset Edit'); }
+    };
+
+    const handleAdminPhotoPick = (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        e.target.value = '';
+        if (!f.type.startsWith('image/')) { alert('Pilih file gambar JPG/PNG'); return; }
+        if (f.size > 5 * 1024 * 1024) { alert('File terlalu besar, maks 5MB'); return; }
+        setAdminCropFile(f);
+    };
+    const handleAdminCropped = (croppedFile) => {
+        if (adminCropPreviewUrl) try { URL.revokeObjectURL(adminCropPreviewUrl); } catch {}
+        const url = croppedFile._previewUrl || URL.createObjectURL(croppedFile);
+        setAdminCropPreviewUrl(url);
+        setEditForm(prev => ({ ...prev, photoFile: croppedFile }));
+        setAdminCropFile(null);
+    };
+    const clearAdminPhotoChoice = () => {
+        if (adminCropPreviewUrl) try { URL.revokeObjectURL(adminCropPreviewUrl); } catch {}
+        setAdminCropPreviewUrl(null);
+        setEditForm(prev => { const { photoFile, ...rest } = prev; return { ...rest }; });
     };
 
     const handleEditSubmit = async (e) => {
@@ -431,11 +457,12 @@ export default function AdminDashboard() {
                             )}
 
                             {editingStudent && (
-                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }} onClick={() => setEditingStudent(null)}>
+                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }} onClick={() => { setEditingStudent(null); if (adminCropPreviewUrl) try { URL.revokeObjectURL(adminCropPreviewUrl); } catch {}; setAdminCropFile(null); setAdminCropPreviewUrl(null); }}>
+                                    {adminCropFile && <PhotoCropModal file={adminCropFile} onClose={() => setAdminCropFile(null)} onCropped={handleAdminCropped} />}
                                     <form onSubmit={handleEditSubmit} onClick={e => e.stopPropagation()} className="edit-form" style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <h3>Edit Siswa: {editingStudent.full_name}</h3>
-                                            <button type="button" onClick={() => setEditingStudent(null)} style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.5rem' }}><X size={16} /></button>
+                                            <button type="button" onClick={() => { setEditingStudent(null); if (adminCropPreviewUrl) try { URL.revokeObjectURL(adminCropPreviewUrl); } catch {}; setAdminCropFile(null); setAdminCropPreviewUrl(null); }} style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.5rem' }}><X size={16} /></button>
                                         </div>
                                         {editForm.is_locked && (
                                             <div style={{ gridColumn: 'span 2', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', fontSize: '0.82rem', color: '#92400e', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -473,8 +500,22 @@ export default function AdminDashboard() {
                                         </div>
                                         <Input l="Password Baru (kosongkan jika tidak ganti)" type="password" v={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} />
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Foto (admin boleh ganti kapan saja)</label>
-                                            <input type="file" accept="image/*" onChange={e => setEditForm({ ...editForm, photoFile: e.target.files[0] })} style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }} />
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Foto — crop 3:4 pas 62×82 kartu (tidak ketarik)</label>
+                                            {adminCropPreviewUrl && (
+                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                                    <img src={adminCropPreviewUrl} alt="Preview crop admin" style={{ width: 62, height: 82, objectFit: 'cover', borderRadius: '0.35rem', border: '2px solid #10b981', flexShrink: 0 }} />
+                                                    <span style={{ fontSize: '0.75rem', color: '#065f46' }}>✓ Siap crop 3:4</span>
+                                                    <button type="button" onClick={clearAdminPhotoChoice} className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem' }}>Hapus</button>
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <label className="btn btn-secondary" style={{ padding: '0.45rem 0.7rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                                    <Upload size={14} style={{ marginRight: '0.3rem' }} /> {editForm.photoFile ? 'Ganti Foto' : 'Pilih Foto'}
+                                                    <input type="file" accept="image/png, image/jpeg, image/jpg" style={{ display: 'none' }} onChange={handleAdminPhotoPick} />
+                                                </label>
+                                                {editForm.photoFile && !adminCropPreviewUrl && <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{editForm.photoFile.name}</span>}
+                                            </div>
+                                            <span style={{ fontSize: '0.68rem', color: '#64748b' }}><Crop size={10} style={{ verticalAlign: '-1px', marginRight: '0.2rem' }} /> Pilih → geser bingkai kuning pas foto, lalu Pakai Foto Ini</span>
                                         </div>
                                         <div style={{ gridColumn: 'span 2', fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary-700)', marginTop: '0.25rem', borderTop: '1px solid var(--surface-200)', paddingTop: '0.75rem' }}>Alamat (per kolom)</div>
                                         <Input l="Dusun" v={editForm.dusun} onChange={e => setEditForm({ ...editForm, dusun: e.target.value })} />

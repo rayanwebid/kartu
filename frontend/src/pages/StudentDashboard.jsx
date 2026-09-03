@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
-import { User, CreditCard, LogOut, Upload, Printer, Edit2, Image, FileText, Lock, ShieldAlert } from 'lucide-react';
+import { User, CreditCard, LogOut, Upload, Printer, Edit2, Image, FileText, Lock, ShieldAlert, Crop } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import PhotoCropModal from '../components/PhotoCropModal';
 
 const InputLine = ({ label, name, type = "text", form, setForm, isEditing, placeholder }) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
@@ -48,6 +49,29 @@ export default function StudentDashboard() {
     }, []);
 
     const isLocked = profile?.is_locked;
+    const [cropFile, setCropFile] = useState(null);
+    const [cropPreviewUrl, setCropPreviewUrl] = useState(null);
+
+    const handlePhotoPick = (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        e.target.value = '';
+        if (!f.type.startsWith('image/')) { alert('Pilih file gambar JPG/PNG'); return; }
+        if (f.size > 5 * 1024 * 1024) { alert('File terlalu besar, maks 5MB'); return; }
+        setCropFile(f);
+    };
+    const handleCropped = (croppedFile) => {
+        if (cropPreviewUrl) try { URL.revokeObjectURL(cropPreviewUrl); } catch {}
+        const url = croppedFile._previewUrl || URL.createObjectURL(croppedFile);
+        setCropPreviewUrl(url);
+        setForm(prev => ({ ...prev, photoFile: croppedFile }));
+        setCropFile(null);
+    };
+    const clearPhotoChoice = () => {
+        if (cropPreviewUrl) try { URL.revokeObjectURL(cropPreviewUrl); } catch {}
+        setCropPreviewUrl(null);
+        setForm(prev => { const { photoFile, ...rest } = prev; return { ...rest }; });
+    };
 
     const handleUpdate = async (e) => {
         e.preventDefault();
@@ -64,6 +88,9 @@ export default function StudentDashboard() {
             setProfile(cardRes.data.profile);
             setForm(cardRes.data.profile);
             setIsEditing(false);
+            if (cropPreviewUrl) { try { URL.revokeObjectURL(cropPreviewUrl); } catch {} setCropPreviewUrl(null); }
+            // bersihkan file sisa agar tidak kebawa edit berikutnya
+            setForm(prev => { const { photoFile, ...rest } = prev; return cardRes.data.profile; });
             alert('Profil berhasil diperbarui dan sekarang terkunci. Perbaikan selanjutnya hubungi admin.');
         } catch (err) {
             const msg = err.response?.data?.message || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(', ') : null) || 'Gagal memperbarui profil';
@@ -174,10 +201,16 @@ export default function StudentDashboard() {
                                 </div>
                             )}
 
+                            {cropFile && (
+                                <PhotoCropModal file={cropFile} onClose={() => setCropFile(null)} onCropped={handleCropped} />
+                            )}
+
                             <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--surface-200)', flexWrap: 'wrap' }}>
                                     <div style={{ width: 100, height: 100, borderRadius: '8px', backgroundColor: 'var(--surface-200)', overflow: 'hidden', border: '3px solid white', boxShadow: 'var(--shadow-sm)', flexShrink: 0, aspectRatio: '1 / 1' }}>
-                                        {profile?.photo_path ? (
+                                        {cropPreviewUrl ? (
+                                            <img src={cropPreviewUrl} alt="Preview crop" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
+                                        ) : profile?.photo_path ? (
                                             <img src={`/api/image?path=${profile.photo_path}`} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
                                         ) : (
                                             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
@@ -192,13 +225,25 @@ export default function StudentDashboard() {
                                                 ? (profile?.photo_path ? 'Foto terkunci — hubungi admin (Reset Edit) untuk ganti foto.' : 'Biodata terkunci — hubungi admin untuk buka.')
                                                 : (profile?.photo_path ? 'Foto sudah ada — Anda bisa ganti foto sekarang (akan terkunci lagi setelah Simpan).' : 'Persegi 1:1 — JPG/PNG (Maks 2MB). Setelah Simpan akan terkunci — ubah lagi perlu Reset Edit admin.')}
                                         </p>
-                                        <input
-                                            type="file" accept="image/png, image/jpeg"
-                                            disabled={!isEditing}
-                                            title={isLocked ? 'Terkunci — minta admin Reset Edit' : (profile?.photo_path ? 'Ganti foto (boleh setelah Reset Edit)' : 'Pilih foto')}
-                                            onChange={e => setForm({ ...form, photoFile: e.target.files[0] })}
-                                            style={{ fontSize: '0.85rem', opacity: !isEditing ? 0.5 : 1 }}
-                                        />
+                                        <div style={{ fontSize: '0.72rem', color: '#065f46', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '0.5rem', padding: '0.4rem 0.55rem', marginBottom: '0.55rem', display: isEditing ? 'flex' : 'none', gap: '0.4rem', alignItems: 'center' }}><Crop size={14} /> Pilih foto → geser bingkai 3:4 agar pas 62×82 di kartu (tidak ketarik).</div>
+                                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                            <label className="btn btn-secondary" style={{ padding: '0.45rem 0.75rem', fontSize: '0.82rem', cursor: isEditing ? 'pointer' : 'not-allowed', opacity: !isEditing ? 0.5 : 1 }}>
+                                                <Upload size={14} style={{ marginRight: '0.35rem' }} /> {form.photoFile ? 'Ganti Foto' : 'Pilih Foto'}
+                                                <input
+                                                    type="file" accept="image/png, image/jpeg, image/jpg" style={{ display: 'none' }}
+                                                    disabled={!isEditing}
+                                                    onChange={handlePhotoPick}
+                                                />
+                                            </label>
+                                            {form.photoFile && (
+                                                <>
+                                                    <span style={{ fontSize: '0.78rem', color: '#065f46', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.3rem 0.5rem', borderRadius: '999px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={form.photoFile.name}>
+                                                        ✓ {form.photoFile.name} — siap crop 3:4
+                                                    </span>
+                                                    <button type="button" onClick={clearPhotoChoice} className="btn btn-secondary" style={{ padding: '0.3rem 0.55rem', fontSize: '0.75rem' }}>Hapus</button>
+                                                </>
+                                            )}
+                                        </div>
                                         {isLocked && isEditing && <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.3rem' }}>Biodata terkunci — minta admin Reset Edit dulu.</div>}
                                     </div>
                                 </div>
