@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
-import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash } from 'lucide-react';
+import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye } from 'lucide-react';
+import { StudentCard, downloadCardImage, downloadCardPDF } from '../components/StudentCard';
 
 export default function AdminDashboard() {
     const { user, logout } = useAuthStore();
@@ -10,23 +11,51 @@ export default function AdminDashboard() {
 
     // Core States
     const [students, setStudents] = useState([]);
+    const [studentsMeta, setStudentsMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
     const [majors, setMajors] = useState([]);
     const [templates, setTemplates] = useState([]);
     const [landing, setLanding] = useState({});
 
-    // Forms Flow States
+    // Students filters
+    const [search, setSearch] = useState('');
+    const [filterMajor, setFilterMajor] = useState('');
+    const [page, setPage] = useState(1);
+
+    // Forms
     const [addStudentMod, setAddStudentMod] = useState(false);
+    const [studentForm, setStudentForm] = useState({ religion: 'Islam' });
+    const [editingStudent, setEditingStudent] = useState(null);
+    const [editForm, setEditForm] = useState({});
     const [addTemplateMod, setAddTemplateMod] = useState(false);
-    const [studentForm, setStudentForm] = useState({});
     const [templateForm, setTemplateForm] = useState({});
 
+    // Card preview (admin as siswa)
+    const [cardPreview, setCardPreview] = useState(null);
+    const [cardLoading, setCardLoading] = useState(false);
+    const [cardStudentId, setCardStudentId] = useState(null);
+
     useEffect(() => { loadData(); }, [activeTab]);
+    useEffect(() => { if (activeTab === 'students') loadStudents(1); }, [search, filterMajor]);
+
+    const loadStudents = async (p = page) => {
+        const params = {};
+        if (search) params.search = search;
+        if (filterMajor) params.major_id = filterMajor;
+        if (p) params.page = p;
+        try {
+            const res = await api.get('/admin/students', { params });
+            setStudents(res.data.data);
+            setStudentsMeta({ current_page: res.data.current_page, last_page: res.data.last_page, total: res.data.total });
+            setPage(res.data.current_page);
+        } catch (e) { console.error(e); }
+    };
 
     const loadData = () => {
-        if (activeTab === 'students') api.get('/admin/students').then(res => setStudents(res.data.data)).catch(console.error);
+        if (activeTab === 'students') loadStudents(page);
         if (activeTab === 'majors') api.get('/admin/majors').then(res => setMajors(res.data)).catch(console.error);
         if (activeTab === 'templates') api.get('/admin/templates').then(res => setTemplates(res.data)).catch(console.error);
         if (activeTab === 'landing') api.get('/admin/landing-contents').then(res => setLanding(res.data)).catch(console.error);
+        if (activeTab === 'students' && majors.length === 0) api.get('/admin/majors').then(res => setMajors(res.data)).catch(() => {});
     };
 
     // Major Handlers
@@ -58,15 +87,64 @@ export default function AdminDashboard() {
             await api.post('/admin/students', studentForm);
             alert("Siswa Didaftarkan!");
             setAddStudentMod(false);
-            setStudentForm({});
-            loadData();
-        } catch (err) { alert(err.response?.data?.message || "Gagal mendaftarkan siswa."); }
+            setStudentForm({ religion: 'Islam' });
+            loadStudents(1);
+        } catch (err) { alert(err.response?.data?.message || JSON.stringify(err.response?.data?.errors) || "Gagal mendaftarkan siswa."); }
     };
+
+    const openEdit = async (s) => {
+        try {
+            const res = await api.get(`/admin/students/${s.id}`);
+            const data = res.data;
+            setEditingStudent(data);
+            setEditForm({
+                full_name: data.full_name,
+                email: data.user?.email || '',
+                nisn: data.nisn,
+                nik: data.nik,
+                birth_place: data.birth_place,
+                birth_date: data.birth_date ? data.birth_date.substring(0, 10) : '',
+                religion: data.religion,
+                address: data.address,
+                major_id: data.major_id,
+                password: '',
+            });
+        } catch (e) { alert('Gagal memuat data siswa'); }
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const fd = new FormData();
+            Object.entries(editForm).forEach(([k, v]) => {
+                if (k === 'password' && !v) return;
+                if (v !== undefined && v !== null && v !== '') fd.append(k, v);
+            });
+            if (editForm.photoFile) fd.append('photo', editForm.photoFile);
+            fd.append('_method', 'PUT');
+            await api.post(`/admin/students/${editingStudent.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            alert('Siswa diperbarui!');
+            setEditingStudent(null);
+            setEditForm({});
+            loadStudents(page);
+        } catch (err) { alert(err.response?.data?.message || JSON.stringify(err.response?.data?.errors) || 'Gagal update'); }
+    };
+
     const deleteStudent = async (id) => {
         if (window.confirm("Hapus siswa ini dari sistem?")) {
             await api.delete(`/admin/students/${id}`);
-            loadData();
+            loadStudents(page);
         }
+    };
+
+    const openCard = async (studentId) => {
+        setCardLoading(true);
+        setCardStudentId(studentId);
+        try {
+            const res = await api.get(`/admin/students/${studentId}/card`);
+            setCardPreview(res.data);
+        } catch (e) { alert('Gagal memuat kartu'); }
+        setCardLoading(false);
     };
 
     // Template Handlers
@@ -152,26 +230,36 @@ export default function AdminDashboard() {
                 <main style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: 'var(--shadow-sm)' }}>
                     {activeTab === 'students' && (
                         <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                                <h2>Kelola Siswa Berjalan</h2>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+                                <h2>Kelola Siswa ({studentsMeta.total})</h2>
                                 <button onClick={() => setAddStudentMod(!addStudentMod)} className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}>
-                                    {addStudentMod ? 'Tutup Pendaftaran' : <><Plus size={16} /> Daftar Baru</>}
+                                    {addStudentMod ? 'Tutup' : <><Plus size={16} /> Daftar Baru</>}
                                 </button>
                             </div>
 
-                            {addStudentMod ? (
+                            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+                                    <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                    <input placeholder="Cari nama / NISN / NIK" value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem' }} />
+                                </div>
+                                <select value={filterMajor} onChange={e => setFilterMajor(e.target.value)} style={{ padding: '0.6rem', border: '1px solid var(--surface-200)', borderRadius: '0.5rem', minWidth: '180px' }}>
+                                    <option value="">Semua Jurusan</option>
+                                    {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                            </div>
+
+                            {addStudentMod && (
                                 <form onSubmit={handleStudentSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'var(--surface-50)', padding: '1.5rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
                                     <Input c="2" l="Nama Lengkap" v={studentForm.full_name} onChange={e => setStudentForm({ ...studentForm, full_name: e.target.value })} />
-                                    <Input l="Email Akses" type="email" v={studentForm.email} onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} />
+                                    <Input l="Email Akses (nisn@kartu.smkmuda.id)" type="email" v={studentForm.email} onChange={e => setStudentForm({ ...studentForm, email: e.target.value })} />
                                     <Input l="Password Akses (Min 6)" type="password" v={studentForm.password} onChange={e => setStudentForm({ ...studentForm, password: e.target.value })} />
-                                    <Input l="NISN (10 Digit)" v={studentForm.nisn} onChange={e => setStudentForm({ ...studentForm, nisn: e.target.value })} />
-                                    <Input l="NIK (16 Digit)" v={studentForm.nik} onChange={e => setStudentForm({ ...studentForm, nik: e.target.value })} />
+                                    <Input l="NISN" v={studentForm.nisn} onChange={e => setStudentForm({ ...studentForm, nisn: e.target.value })} />
+                                    <Input l="NIK" v={studentForm.nik} onChange={e => setStudentForm({ ...studentForm, nik: e.target.value })} />
                                     <Input l="Tempat Lahir" v={studentForm.birth_place} onChange={e => setStudentForm({ ...studentForm, birth_place: e.target.value })} />
                                     <Input l="Tanggal Lahir" type="date" v={studentForm.birth_date} onChange={e => setStudentForm({ ...studentForm, birth_date: e.target.value })} />
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                         <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Agama</label>
-                                        <select required className="form-input" onChange={e => setStudentForm({ ...studentForm, religion: e.target.value })} style={{ padding: '0.6rem' }}>
-                                            <option value="">-- Pilih --</option>
+                                        <select required className="form-input" value={studentForm.religion || 'Islam'} onChange={e => setStudentForm({ ...studentForm, religion: e.target.value })} style={{ padding: '0.6rem' }}>
                                             <option value="Islam">Islam</option><option value="Kristen">Kristen</option>
                                             <option value="Katolik">Katolik</option><option value="Hindu">Hindu</option>
                                             <option value="Buddha">Buddha</option><option value="Konghucu">Konghucu</option>
@@ -179,32 +267,111 @@ export default function AdminDashboard() {
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                         <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Jurusan</label>
-                                        {/* Needs major fetch but for simplicity we assume manual ID typing or select, I'll provide a number input */}
-                                        <input type="number" required placeholder="ID Jurusan (contoh: 1)" className="form-input" style={{ padding: '0.6rem' }} onChange={e => setStudentForm({ ...studentForm, major_id: e.target.value })} />
+                                        <select required value={studentForm.major_id || ''} onChange={e => setStudentForm({ ...studentForm, major_id: e.target.value })} style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }}>
+                                            <option value="">-- Pilih Jurusan --</option>
+                                            {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }}>
                                         <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Alamat Lengkap</label>
-                                        <textarea required rows="2" className="form-input" style={{ padding: '0.6rem' }} onChange={e => setStudentForm({ ...studentForm, address: e.target.value })} />
+                                        <textarea required rows="2" className="form-input" style={{ padding: '0.6rem' }} value={studentForm.address || ''} onChange={e => setStudentForm({ ...studentForm, address: e.target.value })} />
                                     </div>
                                     <button type="submit" className="btn btn-primary" style={{ gridColumn: 'span 2' }}>Simpan Akun Siswa</button>
                                 </form>
-                            ) : (
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-                                    <thead style={{ background: 'var(--surface-100)' }}>
-                                        <tr><th style={{ padding: '1rem' }}>Nama</th><th style={{ padding: '1rem' }}>Kredensial</th><th style={{ padding: '1rem' }}>Opsi</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {students.map(s => (
-                                            <tr key={s.id} style={{ borderBottom: '1px solid var(--surface-200)' }}>
-                                                <td style={{ padding: '1rem', fontWeight: 500 }}>{s.full_name} <br /><span style={{ fontSize: '0.75rem', color: '#64748b' }}>{s.major?.name || 'ID Jurusan: ' + s.major_id}</span></td>
-                                                <td style={{ padding: '1rem' }}>{s.nisn} <br /><span style={{ fontSize: '0.75rem', color: '#64748b' }}>{s.nik}</span></td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <button onClick={() => deleteStudent(s.id)} className="btn btn-secondary" style={{ padding: '0.4rem', color: 'red' }}><Trash size={16} /></button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            )}
+
+                            {editingStudent && (
+                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }} onClick={() => setEditingStudent(null)}>
+                                    <form onSubmit={handleEditSubmit} onClick={e => e.stopPropagation()} style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <h3>Edit Siswa: {editingStudent.full_name}</h3>
+                                            <button type="button" onClick={() => setEditingStudent(null)} style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.5rem' }}><X size={16} /></button>
+                                        </div>
+                                        <Input l="Nama Lengkap" v={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} />
+                                        <Input l="Email Akses" type="email" v={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} />
+                                        <Input l="NISN" v={editForm.nisn} onChange={e => setEditForm({ ...editForm, nisn: e.target.value })} />
+                                        <Input l="NIK" v={editForm.nik} onChange={e => setEditForm({ ...editForm, nik: e.target.value })} />
+                                        <Input l="Tempat Lahir" v={editForm.birth_place} onChange={e => setEditForm({ ...editForm, birth_place: e.target.value })} />
+                                        <Input l="Tanggal Lahir" type="date" v={editForm.birth_date} onChange={e => setEditForm({ ...editForm, birth_date: e.target.value })} />
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Agama</label>
+                                            <select className="form-input" value={editForm.religion || ''} onChange={e => setEditForm({ ...editForm, religion: e.target.value })} style={{ padding: '0.6rem' }}>
+                                                <option value="Islam">Islam</option><option value="Kristen">Kristen</option>
+                                                <option value="Katolik">Katolik</option><option value="Hindu">Hindu</option>
+                                                <option value="Buddha">Buddha</option><option value="Konghucu">Konghucu</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Jurusan</label>
+                                            <select value={editForm.major_id || ''} onChange={e => setEditForm({ ...editForm, major_id: e.target.value })} style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }}>
+                                                {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <Input l="Password Baru (kosongkan jika tidak ganti)" type="password" v={editForm.password} onChange={e => setEditForm({ ...editForm, password: e.target.value })} />
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Foto (opsional)</label>
+                                            <input type="file" accept="image/*" onChange={e => setEditForm({ ...editForm, photoFile: e.target.files[0] })} style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }} />
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }}>
+                                            <label style={{ fontSize: '0.75rem', fontWeight: 600 }}>Alamat</label>
+                                            <textarea rows="2" style={{ padding: '0.6rem', border: '1px solid #ccc', borderRadius: '0.3rem' }} value={editForm.address || ''} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                                            <button type="button" onClick={() => setEditingStudent(null)} className="btn btn-secondary">Batal</button>
+                                            <button type="submit" className="btn btn-primary"><Save size={16} /> Simpan</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                                <thead style={{ background: 'var(--surface-100)' }}>
+                                    <tr><th style={{ padding: '0.75rem' }}>Nama</th><th style={{ padding: '0.75rem' }}>NISN / NIK</th><th style={{ padding: '0.75rem' }}>Jurusan</th><th style={{ padding: '0.75rem' }}>Aksi</th></tr>
+                                </thead>
+                                <tbody>
+                                    {students.map(s => (
+                                        <tr key={s.id} style={{ borderBottom: '1px solid var(--surface-200)' }}>
+                                            <td style={{ padding: '0.75rem', fontWeight: 500 }}>{s.full_name}<br /><span style={{ fontSize: '0.7rem', color: '#64748b' }}>{s.user?.email}</span></td>
+                                            <td style={{ padding: '0.75rem' }}>{s.nisn} <br /><span style={{ fontSize: '0.75rem', color: '#64748b' }}>{s.nik}</span></td>
+                                            <td style={{ padding: '0.75rem' }}>{s.major?.name || s.major_id}</td>
+                                            <td style={{ padding: '0.75rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                                <button onClick={() => openEdit(s)} title="Edit" className="btn btn-secondary" style={{ padding: '0.4rem', color: '#1d4ed8' }}><Edit2 size={14} /></button>
+                                                <button onClick={() => openCard(s.id)} title="Lihat & Download Kartu" className="btn btn-secondary" style={{ padding: '0.4rem', color: '#059669' }}><Eye size={14} /></button>
+                                                <button onClick={() => deleteStudent(s.id)} title="Hapus" className="btn btn-secondary" style={{ padding: '0.4rem', color: 'red' }}><Trash size={14} /></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {students.length === 0 && <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Tidak ada data siswa</div>}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Hal {studentsMeta.current_page} / {studentsMeta.last_page} • Total {studentsMeta.total}</span>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button disabled={page <= 1} onClick={() => loadStudents(page - 1)} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }}>Prev</button>
+                                    <button disabled={page >= studentsMeta.last_page} onClick={() => loadStudents(page + 1)} className="btn btn-secondary" style={{ padding: '0.4rem 0.8rem' }}>Next</button>
+                                </div>
+                            </div>
+
+                            {cardPreview && (
+                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }} onClick={() => setCardPreview(null)}>
+                                    <div onClick={e => e.stopPropagation()} style={{ background: 'white', padding: '1.5rem', borderRadius: '1rem', maxWidth: '920px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <h3>Kartu: {cardPreview.profile?.full_name} ({cardPreview.profile?.nisn})</h3>
+                                            <button onClick={() => setCardPreview(null)} style={{ background: '#fee2e2', border: 'none', padding: '0.4rem', borderRadius: '0.5rem' }}><X size={16} /></button>
+                                        </div>
+                                        {cardLoading ? <div>Memuat...</div> : (
+                                            <>
+                                                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                                    <button onClick={() => downloadCardImage('front', cardPreview.profile.nisn)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}><Download size={16} /> PNG Depan</button>
+                                                    {cardPreview.back_template && <button onClick={() => downloadCardImage('back', cardPreview.profile.nisn)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}><Download size={16} /> PNG Belakang</button>}
+                                                    <button onClick={() => downloadCardPDF(cardPreview.profile, cardPreview.template, cardPreview.back_template)} className="btn btn-primary" style={{ padding: '0.5rem 1rem' }}><Download size={16} /> PDF</button>
+                                                </div>
+                                                <StudentCard profile={cardPreview.profile} template={cardPreview.template} backTemplate={cardPreview.back_template} schoolName={cardPreview.school_name} />
+                                                <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.75rem', textAlign: 'center' }}>Render identik dengan yang dilihat siswa di Dashboard Siswa (template & data sama).</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
                             )}
                         </div>
                     )}
