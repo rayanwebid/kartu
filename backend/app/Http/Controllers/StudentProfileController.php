@@ -27,8 +27,6 @@ class StudentProfileController extends Controller
             return response()->json(['message' => 'Biodata terkunci. Hubungi admin untuk perbaikan (admin: Reset Edit).'], 422);
         }
 
-        $isFirstPhoto = empty($profile->photo_path);
-
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:255',
             'birth_place' => 'sometimes|string|max:255',
@@ -45,10 +43,12 @@ class StudentProfileController extends Controller
             'photo' => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // Foto hanya sekali — jika sudah ada foto tolak upload lagi
+        // Foto: sekali per siklus edit. Jika sudah terkunci tidak bisa upload sama sekali (dicek di atas).
+        // Jika is_locked=false (edit pertama atau setelah admin Reset Edit), boleh upload/ganti foto — ganti akan timpa foto lama.
         if ($request->hasFile('photo')) {
-            if (!$isFirstPhoto) {
-                return response()->json(['message' => 'Foto hanya bisa diunggah sekali. Hubungi admin untuk mengganti foto.'], 422);
+            // hapus foto lama jika ada agar tidak menumpuk storage
+            if (!empty($profile->photo_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($profile->photo_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($profile->photo_path);
             }
             $path = $request->file('photo')->store('photos', 'public');
             $validated['photo_path'] = $path;

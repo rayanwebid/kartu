@@ -188,16 +188,18 @@ export default function StudentDashboard() {
                                     <div style={{ flex: 1, minWidth: '200px' }}>
                                         <h3 style={{ fontSize: '1.15rem', marginBottom: '0.25rem' }}>Foto Profil</h3>
                                         <p style={{ fontSize: '0.82rem', color: 'var(--text-500)', marginBottom: '0.6rem' }}>
-                                            {profile?.photo_path ? 'Foto sudah terunggah — hanya bisa diganti oleh admin.' : 'Persegi 1:1 — JPG/PNG (Maks 2MB). Upload hanya sekali, setelah simpan akan terkunci.'}
+                                            {isLocked
+                                                ? (profile?.photo_path ? 'Foto terkunci — hubungi admin (Reset Edit) untuk ganti foto.' : 'Biodata terkunci — hubungi admin untuk buka.')
+                                                : (profile?.photo_path ? 'Foto sudah ada — Anda bisa ganti foto sekarang (akan terkunci lagi setelah Simpan).' : 'Persegi 1:1 — JPG/PNG (Maks 2MB). Setelah Simpan akan terkunci — ubah lagi perlu Reset Edit admin.')}
                                         </p>
                                         <input
                                             type="file" accept="image/png, image/jpeg"
-                                            disabled={!isEditing || !!profile?.photo_path}
-                                            title={profile?.photo_path ? 'Foto hanya sekali — hubungi admin' : 'Pilih foto'}
+                                            disabled={!isEditing}
+                                            title={isLocked ? 'Terkunci — minta admin Reset Edit' : (profile?.photo_path ? 'Ganti foto (boleh setelah Reset Edit)' : 'Pilih foto')}
                                             onChange={e => setForm({ ...form, photoFile: e.target.files[0] })}
-                                            style={{ fontSize: '0.85rem', opacity: (!isEditing || !!profile?.photo_path) ? 0.5 : 1 }}
+                                            style={{ fontSize: '0.85rem', opacity: !isEditing ? 0.5 : 1 }}
                                         />
-                                        {profile?.photo_path && isEditing && <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.3rem' }}>Foto sudah ada — tidak bisa upload lagi. Hubungi admin.</div>}
+                                        {isLocked && isEditing && <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.3rem' }}>Biodata terkunci — minta admin Reset Edit dulu.</div>}
                                     </div>
                                 </div>
 
