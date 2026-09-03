@@ -1,0 +1,27 @@
+[
+    {
+        "id": "019f7ff9-3590-7015-b289-0c98fef1178c",
+        "kode": "TKR",
+        "nama": "Teknik Kendaraan Ringan"
+    },
+    {
+        "id": "019f7ff9-35a6-70df-8c8b-528e35be65b2",
+        "kode": "TSM",
+        "nama": "Teknik Sepeda Motor"
+    },
+    {
+        "id": "019f7ff9-35b6-728a-8cdd-dc09c91b77a7",
+        "kode": "TEI",
+        "nama": "Teknik Elektronika Industri"
+    },
+    {
+        "id": "019f7ff9-35c6-72b5-88ee-1d3b93b9c60b",
+        "kode": "ANI",
+        "nama": "Animasi"
+    },
+    {
+        "id": "019f7ff9-35d0-70f2-accf-1b47170f51f6",
+        "kode": "KUL",
+        "nama": "Kuliner"
+    }
+]

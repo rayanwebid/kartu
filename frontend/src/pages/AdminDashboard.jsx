@@ -298,7 +298,7 @@ export default function AdminDashboard() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                                 {templates.map(t => (
                                     <div key={t.id} style={{ border: '1px solid var(--surface-200)', borderRadius: '1rem', padding: '1.5rem', position: 'relative' }}>
-                                        {t.background_image_path && <div style={{ width: '100%', height: '100px', background: `url(http://localhost:8000/storage/${t.background_image_path}) no-repeat center/cover`, marginBottom: '1rem', borderRadius: '0.5rem' }} />}
+                                        {t.background_image_path && <div style={{ width: '100%', height: '100px', background: `url(/storage/${t.background_image_path}) no-repeat center/cover`, marginBottom: '1rem', borderRadius: '0.5rem' }} />}
                                         <h3 style={{ fontSize: '1rem' }}>{t.template_name}</h3>
                                         <div style={{ padding: '2px 6px', background: t.card_type === 'back' ? '#4f46e5' : '#e11d48', color: 'white', fontSize: '0.7rem', display: 'inline-block', borderRadius: '4px', marginTop: '4px', fontWeight: 600 }}>{t.card_type === 'back' ? 'KARTU BELAKANG' : 'KARTU DEPAN'}</div>
                                         <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--text-500)', display: 'flex', gap: '1rem' }}>
