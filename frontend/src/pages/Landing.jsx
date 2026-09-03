@@ -62,7 +62,7 @@ export default function Landing() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div>
                                     <h3 style={{ fontSize: '1.5rem', color: 'var(--primary-600)' }}>KARTU PELAJAR</h3>
-                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-500)' }}>SMA Nusantara Digital</p>
+                                    <p style={{ fontSize: '0.875rem', color: 'var(--text-500)' }}>SMKS Muhammadiyah 2 Genteng</p>
                                 </div>
                                 <ShieldCheck size={32} color="var(--primary-500)" />
                             </div>
