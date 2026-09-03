@@ -340,7 +340,7 @@ export default function StudentDashboard() {
                                                         <tr>
                                                             <td style={{ verticalAlign: 'top', paddingTop: '1px' }}>Alamat</td>
                                                             <td style={{ verticalAlign: 'top', paddingTop: '1px' }}>:</td>
-                                                            <td style={{ lineHeight: '1.2', textTransform: 'uppercase', wordBreak: 'break-word', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', maxHeight: '15px' }}>{(profile?.address || '').toUpperCase()}</td>
+                                                            <td style={{ lineHeight: '1.25', textTransform: 'uppercase', wordBreak: 'break-word', whiteSpace: 'normal' }}>{(profile?.address || '').toUpperCase()}</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>
@@ -386,7 +386,7 @@ export default function StudentDashboard() {
                                                     <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>NISN / NIK</span><span>: {profile?.nisn} / {profile?.nik}</span></div>
                                                     <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>TTL</span><span style={{ textTransform: 'uppercase' }}>: {(profile?.birth_place || '').toUpperCase()}, {profile?.birth_date}</span></div>
                                                     <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Agama</span><span style={{ textTransform: 'uppercase' }}>: {(profile?.religion || '').toUpperCase()}</span></div>
-                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Alamat</span><span style={{ textTransform: 'uppercase', wordBreak: 'break-word' }}>: {(profile?.address || '').toUpperCase()}</span></div>
+                                                    <div style={{ display: 'flex', alignItems: 'flex-start' }}><span style={{ width: '60px', flexShrink: 0 }}>Alamat</span><span style={{ width: '8px', flexShrink: 0, textAlign: 'center' }}>:</span><span style={{ flex: 1, textTransform: 'uppercase', wordBreak: 'break-word', whiteSpace: 'normal', lineHeight: '1.25' }}>{(profile?.address || '').toUpperCase()}</span></div>
                                                 </div>
                                             </div>
 
