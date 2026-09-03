@@ -149,45 +149,61 @@ button {
   }
   /* header fixed offset */
   .landing-wrapper header { padding-top: 7rem !important; }
-  /* dashboard: menu kiri pindah ke ATAS (bukan bawah) — pill horizontal sticky */
+  /* dashboard: sidebar kiri jadi bottom nav (bawah) — fixed, tidak tenggelam */
   .admin-layout,
   .student-layout {
     flex-direction: column !important;
-    padding: 1rem !important;
-    gap: 0.85rem !important;
+    padding: 1rem 1rem 84px 1rem !important;
+    gap: 1rem !important;
   }
   .admin-sidebar,
   .student-sidebar {
-    order: -1 !important;
-    position: sticky !important;
-    top: 0.5rem !important;
-    z-index: 20 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    z-index: 40 !important;
     width: 100% !important;
     min-width: 0 !important;
     flex-direction: row !important;
+    justify-content: space-around !important;
+    align-items: center !important;
     overflow-x: auto;
     flex-wrap: nowrap !important;
-    padding: 0.5rem;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--surface-200);
-    gap: 0.35rem !important;
+    padding: 0.45rem 0.35rem calc(0.45rem + env(safe-area-inset-bottom)) !important;
+    background: white !important;
+    border-top: 1px solid var(--surface-200) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.08) !important;
+    gap: 0.15rem !important;
     scrollbar-width: none;
   }
   .admin-sidebar::-webkit-scrollbar,
   .student-sidebar::-webkit-scrollbar { display: none; }
   .admin-sidebar button,
   .student-sidebar button {
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 0.18rem !important;
     white-space: nowrap;
-    flex: 0 0 auto;
-    padding: 0.65rem 0.85rem !important;
-    font-size: 0.82rem !important;
-    border-radius: 0.6rem !important;
+    padding: 0.38rem 0.3rem !important;
+    font-size: 0.64rem !important;
+    border-radius: 0.55rem !important;
+    line-height: 1.1 !important;
+  }
+  .admin-sidebar button svg,
+  .student-sidebar button svg {
+    width: 18px !important;
+    height: 18px !important;
   }
   .admin-main,
   .student-main {
-    order: 1 !important;
     padding: 1rem !important;
     border-radius: 0.75rem !important;
   }
