@@ -318,9 +318,9 @@ export default function StudentDashboard() {
                                                 </div>
                                             </div>
 
-                                            {/* Media Section: Photo & QR — persegi 1:1, tidak oval, tidak ketarik */}
+                                            {/* Media Section: Photo & QR — persegi panjang 3:4, tidak oval, tidak ketarik */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 18px', marginTop: '2px', zIndex: 10 }}>
-                                                <div style={{ width: '75px', height: '75px', aspectRatio: '1 / 1', border: '2px solid white', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', backgroundColor: '#ccc', flexShrink: 0 }}>
+                                                <div style={{ width: '62px', height: '82px', aspectRatio: '3 / 4', border: '2px solid white', borderRadius: '4px', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', backgroundColor: '#ccc', flexShrink: 0 }}>
                                                     {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />}
                                                 </div>
                                                 <div style={{ width: '65px', height: '65px', background: 'white', padding: '4px', borderRadius: '4px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
@@ -328,42 +328,42 @@ export default function StudentDashboard() {
                                                 </div>
                                             </div>
 
-                                            {/* Biodata Section */}
-                                            <div style={{ padding: '0 14px', marginTop: '4px', zIndex: 10 }}>
-                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7px', fontFamily: '"Arial", sans-serif', color: '#0f172a', fontWeight: 600 }}>
+                                            {/* Biodata Section — huruf kapital semua, padat biar footer tidak kebawah */}
+                                            <div style={{ padding: '0 14px', marginTop: '3px', zIndex: 10 }}>
+                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '6.5px', fontFamily: '"Arial", sans-serif', color: '#0f172a', fontWeight: 700, lineHeight: '1.15' }}>
                                                     <tbody>
-                                                        <tr><td style={{ width: '32%', paddingBottom: '2px' }}>Nama</td><td style={{ width: '4%', paddingBottom: '2px' }}>:</td><td style={{ paddingBottom: '2px', textTransform: 'uppercase' }}>{profile?.full_name}</td></tr>
-                                                        <tr><td style={{ paddingBottom: '2px' }}>NIK / NIS</td><td style={{ paddingBottom: '2px' }}>:</td><td style={{ paddingBottom: '2px' }}>{profile?.nik} / {profile?.nisn}</td></tr>
-                                                        <tr><td style={{ paddingBottom: '2px' }}>Tempat, Tgl Lahir</td><td style={{ paddingBottom: '2px' }}>:</td><td style={{ paddingBottom: '2px' }}>{profile?.birth_place}, {profile?.birth_date}</td></tr>
-                                                        <tr><td style={{ paddingBottom: '2px' }}>Agama</td><td style={{ paddingBottom: '2px' }}>:</td><td style={{ paddingBottom: '2px' }}>{profile?.religion}</td></tr>
-                                                        <tr><td style={{ paddingBottom: '2px' }}>Konsentrasi Keahlian</td><td style={{ paddingBottom: '2px' }}>:</td><td style={{ paddingBottom: '2px' }}>{profile?.major?.name || ''}</td></tr>
+                                                        <tr><td style={{ width: '32%', paddingBottom: '1.5px' }}>Nama</td><td style={{ width: '4%', paddingBottom: '1.5px' }}>:</td><td style={{ paddingBottom: '1.5px', textTransform: 'uppercase', wordBreak: 'break-word' }}>{(profile?.full_name || '').toUpperCase()}</td></tr>
+                                                        <tr><td style={{ paddingBottom: '1.5px' }}>NIK / NIS</td><td style={{ paddingBottom: '1.5px' }}>:</td><td style={{ paddingBottom: '1.5px', textTransform: 'uppercase' }}>{profile?.nik} / {profile?.nisn}</td></tr>
+                                                        <tr><td style={{ paddingBottom: '1.5px' }}>Tempat, Tgl Lahir</td><td style={{ paddingBottom: '1.5px' }}>:</td><td style={{ paddingBottom: '1.5px', textTransform: 'uppercase' }}>{(profile?.birth_place || '').toUpperCase()}, {profile?.birth_date}</td></tr>
+                                                        <tr><td style={{ paddingBottom: '1.5px' }}>Agama</td><td style={{ paddingBottom: '1.5px' }}>:</td><td style={{ paddingBottom: '1.5px', textTransform: 'uppercase' }}>{(profile?.religion || '').toUpperCase()}</td></tr>
+                                                        <tr><td style={{ paddingBottom: '1.5px' }}>Konsentrasi Keahlian</td><td style={{ paddingBottom: '1.5px' }}>:</td><td style={{ paddingBottom: '1.5px', textTransform: 'uppercase' }}>{(profile?.major?.name || '').toUpperCase()}</td></tr>
                                                         <tr>
-                                                            <td style={{ verticalAlign: 'top' }}>Alamat</td>
-                                                            <td style={{ verticalAlign: 'top' }}>:</td>
-                                                            <td style={{ lineHeight: '1.2' }}>{profile?.address}</td>
+                                                            <td style={{ verticalAlign: 'top', paddingTop: '1px' }}>Alamat</td>
+                                                            <td style={{ verticalAlign: 'top', paddingTop: '1px' }}>:</td>
+                                                            <td style={{ lineHeight: '1.2', textTransform: 'uppercase', wordBreak: 'break-word', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', maxHeight: '15px' }}>{(profile?.address || '').toUpperCase()}</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>
                                             </div>
 
-                                            {/* Footer Section */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 14px', marginTop: 'auto', marginBottom: '8px', alignItems: 'flex-end', zIndex: 10 }}>
-                                                <div style={{ background: '#e11d48', color: 'white', padding: '4px 6px', fontSize: '5.5px', fontWeight: 800, textAlign: 'center', lineHeight: '1.2', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                                            {/* Footer Section — dipadatkan biar tidak kebawah */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 14px', marginTop: '4px', marginBottom: '4px', alignItems: 'flex-end', zIndex: 10 }}>
+                                                <div style={{ background: '#e11d48', color: 'white', padding: '3px 5px', fontSize: '5px', fontWeight: 800, textAlign: 'center', lineHeight: '1.15', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
                                                     BERLAKU SELAMA<br />MENJADI SISWA
                                                 </div>
 
-                                                <div style={{ textAlign: 'center', fontSize: '5px', color: '#0f172a', fontWeight: 700, width: '75px', position: 'relative' }}>
-                                                    <div>{template?.sign_place_date || 'Banyuwangi, 17 Juli 2024'}</div>
-                                                    <div style={{ marginTop: '2px' }}>Kepala Sekolah,</div>
+                                                <div style={{ textAlign: 'center', fontSize: '4.5px', color: '#0f172a', fontWeight: 700, width: '82px', position: 'relative', lineHeight: '1.15' }}>
+                                                    <div style={{ textTransform: 'uppercase' }}>{template?.sign_place_date || 'BANYUWANGI, 17 JULI 2024'}</div>
+                                                    <div style={{ marginTop: '1px' }}>Kepala Sekolah,</div>
 
-                                                    <div style={{ position: 'relative', height: '35px', margin: '2px 0' }}>
+                                                    <div style={{ position: 'relative', height: '26px', margin: '1px 0' }}>
                                                         {template?.signature_image_path && (
-                                                            <img src={`/api/image?path=${template.signature_image_path}`} crossOrigin="anonymous" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '120%', maxHeight: '42px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                                                            <img src={`/api/image?path=${template.signature_image_path}`} crossOrigin="anonymous" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '110%', maxHeight: '32px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
                                                         )}
                                                     </div>
 
-                                                    <div style={{ fontWeight: 800, textDecoration: 'underline' }}>{template?.principal_name || 'NAMA KEPALA SEKOLAH'}</div>
-                                                    <div style={{ marginTop: '1px' }}>{template?.principal_nip || 'NIP/NBM. -'}</div>
+                                                    <div style={{ fontWeight: 800, textDecoration: 'underline', textTransform: 'uppercase', fontSize: '5px' }}>{(template?.principal_name || 'NAMA KEPALA SEKOLAH').toUpperCase()}</div>
+                                                    <div style={{ marginTop: '1px', textTransform: 'uppercase' }}>{(template?.principal_nip || 'NIP/NBM. -').toUpperCase()}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -375,18 +375,18 @@ export default function StudentDashboard() {
                                             </div>
 
                                             <div style={{ display: 'flex', gap: '12px', flex: 1, marginTop: '8px' }}>
-                                                {/* Photo — persegi 1:1 */}
-                                                <div style={{ width: '70px', height: '70px', aspectRatio: '1 / 1', background: '#ccc', borderRadius: '6px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', flexShrink: 0 }}>
+                                                {/* Photo — persegi panjang 3:4 */}
+                                                <div style={{ width: '62px', height: '82px', aspectRatio: '3 / 4', background: '#ccc', borderRadius: '4px', overflow: 'hidden', border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', flexShrink: 0 }}>
                                                     {profile?.photo_path && <img src={`/api/image?path=${profile.photo_path}`} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />}
                                                 </div>
 
-                                                {/* Data */}
+                                                {/* Data — huruf kapital semua */}
                                                 <div style={{ flex: 1, fontSize: '9px', display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 600 }}>
-                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Nama</span><span>: {profile?.full_name}</span></div>
+                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Nama</span><span style={{ textTransform: 'uppercase' }}>: {(profile?.full_name || '').toUpperCase()}</span></div>
                                                     <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>NISN / NIK</span><span>: {profile?.nisn} / {profile?.nik}</span></div>
-                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>TTL</span><span>: {profile?.birth_place}, {profile?.birth_date}</span></div>
-                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Agama</span><span>: {profile?.religion}</span></div>
-                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Alamat</span><span>: {profile?.address}</span></div>
+                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>TTL</span><span style={{ textTransform: 'uppercase' }}>: {(profile?.birth_place || '').toUpperCase()}, {profile?.birth_date}</span></div>
+                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Agama</span><span style={{ textTransform: 'uppercase' }}>: {(profile?.religion || '').toUpperCase()}</span></div>
+                                                    <div style={{ display: 'flex' }}><span style={{ width: '60px' }}>Alamat</span><span style={{ textTransform: 'uppercase', wordBreak: 'break-word' }}>: {(profile?.address || '').toUpperCase()}</span></div>
                                                 </div>
                                             </div>
 
