@@ -30,6 +30,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Admin Routes
     Route::prefix('admin')->group(function () {
         Route::apiResource('majors', MajorController::class);
+        Route::get('students/{student}/card', [StudentManagementController::class, 'cardPreview']);
         Route::apiResource('students', StudentManagementController::class);
         Route::apiResource('templates', CardTemplateController::class);
         Route::apiResource('landing-contents', LandingContentController::class);
