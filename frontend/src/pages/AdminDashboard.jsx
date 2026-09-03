@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/axios';
-import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye, Clock, UserCheck, UserX, Lock, Unlock } from 'lucide-react';
+import { Users, LayoutTemplate, Settings, GraduationCap, LogOut, Check, X, Plus, Edit2, Save, Trash, Search, Download, Eye, Clock, UserCheck, UserX, Lock, Unlock, RotateCcw } from 'lucide-react';
 import { StudentCard, downloadCardImage, downloadCardPDF } from '../components/StudentCard';
 
 export default function AdminDashboard() {
@@ -181,6 +181,18 @@ export default function AdminDashboard() {
             loadStudents(page);
             alert('Biodata dibuka. Siswa bisa edit kembali.');
         } catch (e) { alert(e.response?.data?.message || 'Gagal membuka kunci'); }
+    };
+
+    const handleResetEdit = async () => {
+        if (!window.confirm('Reset Edit? Hitungan edit siswa akan di-nol-kan dan biodata dibuka — siswa bisa edit lagi (sekali, lalu terkunci). Lanjut?')) return;
+        try {
+            await api.post(`/admin/students/${editingStudent.id}/reset-edit`);
+            const res = await api.get(`/admin/students/${editingStudent.id}`);
+            setEditingStudent(res.data);
+            setEditForm(f => ({ ...f, is_locked: false, edit_count: 0 }));
+            loadStudents(page);
+            alert('Reset Edit berhasil. Siswa dapat mengedit lagi.');
+        } catch (e) { alert(e.response?.data?.message || 'Gagal Reset Edit'); }
     };
 
     const handleEditSubmit = async (e) => {
@@ -428,11 +440,16 @@ export default function AdminDashboard() {
                                         {editForm.is_locked && (
                                             <div style={{ gridColumn: 'span 2', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', fontSize: '0.82rem', color: '#92400e', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                                 <Lock size={14} /> Biodata terkunci — siswa tidak bisa edit. <button type="button" onClick={handleUnlock} className="btn btn-secondary" style={{ padding: '0.35rem 0.7rem', fontSize: '0.8rem' }}><Unlock size={14} style={{ marginRight: '0.3rem' }} /> Buka Kunci</button>
-                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Kartu tampil: {editForm.formatted_address || editForm.address || '—'}</span>
+                                                <button type="button" onClick={handleResetEdit} className="btn btn-secondary" style={{ padding: '0.35rem 0.7rem', fontSize: '0.8rem', background: '#fef3c7', borderColor: '#f59e0b' }}><RotateCcw size={14} style={{ marginRight: '0.3rem' }} /> Reset Edit</button>
+                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Edit ke-{editForm.edit_count || 1} • Kartu: {editForm.formatted_address || editForm.address || '—'}</span>
                                             </div>
                                         )}
-                                        {!editForm.is_locked && editForm.formatted_address && (
-                                            <div style={{ gridColumn: 'span 2', fontSize: '0.78rem', color: '#475569', background: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '0.5rem', padding: '0.45rem 0.6rem' }}>Pratinjau kartu: <b>{editForm.formatted_address}</b></div>
+                                        {!editForm.is_locked && (
+                                            <div style={{ gridColumn: 'span 2', display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.78rem', color: '#475569', background: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: '0.5rem', padding: '0.45rem 0.6rem' }}>
+                                                <span>Pratinjau kartu: <b>{editForm.formatted_address || editForm.address || '—'}</b></span>
+                                                {(editForm.edit_count || 0) > 0 && <button type="button" onClick={handleResetEdit} className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}><RotateCcw size={12} style={{ marginRight: '0.25rem' }} /> Reset Edit</button>}
+                                                {(editForm.edit_count || 0) > 0 && <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Sudah edit {editForm.edit_count}x</span>}
+                                            </div>
                                         )}
                                         <Input l="Nama Lengkap" v={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} />
                                         <Input l="Email Akses" type="email" v={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} />

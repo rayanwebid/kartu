@@ -35,6 +35,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('students/{student}/approve', [StudentManagementController::class, 'approve']);
         Route::post('students/{student}/reject', [StudentManagementController::class, 'reject']);
         Route::post('students/{student}/unlock', [StudentManagementController::class, 'unlock']);
+        Route::post('students/{student}/reset-edit', [StudentManagementController::class, 'resetEdit']);
         Route::get('students/{student}/card', [StudentManagementController::class, 'cardPreview']);
         Route::apiResource('students', StudentManagementController::class);
         Route::apiResource('templates', CardTemplateController::class);

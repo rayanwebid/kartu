@@ -68,6 +68,12 @@ class StudentManagementController extends Controller
         return response()->json(['message' => 'Biodata dibuka. Siswa bisa edit kembali satu kali.', 'profile' => $student->fresh()->load(['user','major'])]);
     }
 
+    public function resetEdit(StudentProfile $student) {
+        // Reset Edit = buka kunci + reset hitungan agar siswa bisa edit lagi atas persetujuan admin (dipakai jika sudah edit >1x / terkunci)
+        $student->update(['is_locked' => false, 'edit_count' => 0]);
+        return response()->json(['message' => 'Reset Edit berhasil. Siswa dapat mengedit biodata & foto kembali (satu kali, lalu terkunci lagi).', 'profile' => $student->fresh()->load(['user','major'])]);
+    }
+
     public function show(StudentProfile $student) {
         return response()->json($student->load(['user','major']));
     }

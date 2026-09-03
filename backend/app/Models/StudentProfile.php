@@ -9,11 +9,12 @@ class StudentProfile extends Model
     protected $fillable = [
         'user_id', 'nisn', 'nik', 'full_name', 'photo_path', 
         'birth_place', 'birth_date', 'religion', 'major_id', 'address',
-        'dusun', 'rt', 'rw', 'desa', 'kecamatan', 'kabupaten', 'is_locked'
+        'dusun', 'rt', 'rw', 'desa', 'kecamatan', 'kabupaten', 'is_locked', 'edit_count'
     ];
 
     protected $casts = [
         'is_locked' => 'boolean',
+        'edit_count' => 'integer',
     ];
 
     protected $appends = ['formatted_address'];

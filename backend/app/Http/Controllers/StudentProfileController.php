@@ -22,9 +22,9 @@ class StudentProfileController extends Controller
             return response()->json(['message' => 'Profile not found'], 404);
         }
 
-        // Biodata kunci sekali edit — setelah is_locked=true hanya admin yang bisa ubah
+        // Biodata kunci sekali edit — setelah is_locked=true hanya admin yang bisa buka
         if ($profile->is_locked) {
-            return response()->json(['message' => 'Biodata terkunci. Hubungi admin untuk perbaikan.'], 422);
+            return response()->json(['message' => 'Biodata terkunci. Hubungi admin untuk perbaikan (admin: Reset Edit).'], 422);
         }
 
         $isFirstPhoto = empty($profile->photo_path);
@@ -71,20 +71,18 @@ class StudentProfileController extends Controller
         unset($validated['email'], $validated['photo']);
 
         if (!empty($validated)) {
-            // foto_path sudah di validated
             $profile->update($validated);
         }
 
-        if (isset($validated['full_name'])) {
+        if (array_key_exists('full_name', $validated)) {
             $user->update(['name' => $validated['full_name']]);
         }
         if ($email) {
             $user->update(['email' => $email]);
         }
 
-        // Kunci biodata: setelah update pertama (biodata + foto) langsung locked. Jika belum ada foto, tetap locked supaya tidak edit berulang.
-        // Logika: begitu siswa menekan Simpan (edit pertama), langsung kunci — perbaikan selanjutnya via admin.
-        $profile->update(['is_locked' => true]);
+        // Kunci biodata: begitu siswa menekan Simpan, langsung kunci + hitung edit
+        $profile->update(['is_locked' => true, 'edit_count' => ($profile->edit_count ?? 0) + 1]);
 
         return response()->json($profile->fresh()->load('major'));
     }
